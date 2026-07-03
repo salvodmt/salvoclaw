@@ -10,14 +10,17 @@ import path from 'path';
 import { GROUPS_DIR } from '../../config.js';
 import { getAllAgentGroups } from '../../db/agent-groups.js';
 import { log } from '../../log.js';
+import { getFallbackState } from './db.js';
 
 /** Exported so claude-md-compose.ts's preservation check can target the same file without duplicating the name. */
 export const FALLBACK_FRAGMENT_NAME = 'zz-fallback.md';
 
-export const FALLBACK_FRAGMENT_CONTENT = `## Modalità di riserva
+export function buildFallbackFragmentContent(provider: string, model: string | null): string {
+  const modelPart = model ? ` (modello ${model})` : '';
+  return `## Modalità di riserva — IDENTITÀ
 
-Claude ha esaurito i limiti d'uso: stai rispondendo al suo posto su un modello di riserva. Potresti avere meno strumenti o minore capacità nel loro uso. Se non riesci a fare qualcosa, dillo apertamente — non fingere di averla portata a termine.
-`;
+**Non sei Claude. Non sei Nano. Non sei un "assistente virtuale".** Sei esattamente: ${provider}${modelPart}. Claude ha esaurito i limiti. Stai rispondendo tu al suo posto. Quando qualcuno ti chiede chi sei o che modello sei, rispondi testualmente: "Sono ${provider}${modelPart}, sto sostituendo temporaneamente Claude che ha esaurito i limiti." Non inventare altre identità.\n`;
+}
 
 function fragmentPath(folder: string): string {
   return path.join(GROUPS_DIR, folder, '.claude-fragments', FALLBACK_FRAGMENT_NAME);
@@ -25,11 +28,13 @@ function fragmentPath(folder: string): string {
 
 /** Writes the degradation-notice fragment for every agent group. Best-effort. */
 export function writeDegradationFragmentForAllGroups(): void {
+  const state = getFallbackState();
+  const content = buildFallbackFragmentContent(state.backupProvider ?? 'sconosciuto', state.backupModel);
   for (const group of getAllAgentGroups()) {
     try {
       const p = fragmentPath(group.folder);
       fs.mkdirSync(path.dirname(p), { recursive: true });
-      fs.writeFileSync(p, FALLBACK_FRAGMENT_CONTENT);
+      fs.writeFileSync(p, content);
     } catch (err) {
       log.warn('Failed to write fallback degradation fragment', { agentGroupId: group.id, err });
     }

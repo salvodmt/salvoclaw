@@ -17,6 +17,7 @@ export interface FallbackState {
   classification: FallbackClassification | null;
   reason: string | null;
   backupProvider: string | null;
+  backupModel: string | null;
   enteredAt: string | null;
   resetAt: string | null;
   nextRetryAt: string | null;
@@ -37,6 +38,7 @@ interface FallbackStateRow {
   classification: string | null;
   reason: string | null;
   backup_provider: string | null;
+  backup_model: string | null;
   entered_at: string | null;
   reset_at: string | null;
   next_retry_at: string | null;
@@ -58,6 +60,7 @@ function rowToState(row: FallbackStateRow): FallbackState {
     classification: row.classification as FallbackClassification | null,
     reason: row.reason,
     backupProvider: row.backup_provider,
+    backupModel: (row as { backup_model?: string | null }).backup_model ?? null,
     enteredAt: row.entered_at,
     resetAt: row.reset_at,
     nextRetryAt: row.next_retry_at,
@@ -84,6 +87,7 @@ export interface EnterFallbackParams {
   classification: FallbackClassification;
   reason: string;
   backupProvider: string;
+  backupModel: string | null;
   resetAt: string | null;
   originSessionId: string | null;
   originGroupId: string | null;
@@ -99,6 +103,7 @@ export function enterFallbackState(params: EnterFallbackParams): FallbackState {
          classification = @classification,
          reason = @reason,
          backup_provider = @backupProvider,
+         backup_model = @backupModel,
          entered_at = datetime('now'),
          reset_at = @resetAt,
          next_retry_at = NULL,
@@ -127,6 +132,7 @@ export function clearFallbackState(): FallbackState {
          classification = NULL,
          reason = NULL,
          backup_provider = NULL,
+         backup_model = NULL,
          entered_at = NULL,
          reset_at = NULL,
          next_retry_at = NULL,

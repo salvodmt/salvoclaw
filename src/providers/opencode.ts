@@ -64,7 +64,7 @@ registerProviderContainerConfig('opencode', (ctx) => {
   // `.env` is NOT loaded into process.env by design (secrets isolation),
   // so fallback keys are needed for values set by the setup wizard.
   const envFile = readDotEnv();
-  for (const key of ['OPENCODE_PROVIDER', 'OPENCODE_MODEL', 'OPENCODE_SMALL_MODEL'] as const) {
+  for (const key of ['OPENCODE_PROVIDER', 'OPENCODE_MODEL', 'OPENCODE_SMALL_MODEL', 'ANTHROPIC_BASE_URL'] as const) {
     const value = ctx.hostEnv[key] || envFile[key];
     if (value) env[key] = value;
   }

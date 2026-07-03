@@ -9,6 +9,7 @@ function baseState(overrides: Partial<FallbackState> = {}): FallbackState {
     mode: null,
     classification: null,
     reason: null,
+    backupModel: null,
     backupProvider: null,
     enteredAt: null,
     resetAt: null,

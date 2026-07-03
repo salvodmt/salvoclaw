@@ -71,11 +71,12 @@ export function commandDeniedNotice(): string {
 /** Rule 6: the assistant must declare, not pretend, when running on the backup model. */
 export function forwardBriefing(summary: string | null, backupProvider: string, model: string | null): string {
   const modelPart = model ? ` (modello ${model})` : '';
+  const identity = `${backupProvider}${modelPart}`;
   const base = [
-    `Sto rispondendo al posto di Claude, che ha esaurito i limiti.`,
-    `In questo momento sto girando su ${backupProvider}${modelPart}.`,
-    `Non sono Claude — se mi chiedono che modello sono, dico la verità: ${backupProvider}${modelPart}.`,
-    `Se non riesco a fare qualcosa lo dico apertamente, non fingo.`,
+    `La tua identità è: ${identity}.`,
+    `Sei tu a rispondere, non Claude — Claude ha esaurito i limiti.`,
+    `Quando ti viene chiesto "che modello sei?" o "chi sei?" devi rispondere esattamente: "Sono ${identity}, sto sostituendo Claude."`,
+    `Non dire mai "sono un assistente virtuale" o "sono un modello avanzato" — di' sempre ${identity}.`,
   ].join(' ');
   return summary ? `${base}\n\nRiassunto della conversazione recente:\n${summary}` : base;
 }
@@ -103,8 +104,9 @@ export function statusNotice(state: FallbackState): string {
     return 'Modello attivo: Claude. Fallback non attivo.';
   }
   const modeLabel = state.mode === 'forced' ? 'forzato' : 'automatico';
+  const modelPart = state.backupModel ? ` su ${state.backupModel}` : '';
   const lines = [
-    `Modello attivo: ${state.backupProvider} (fallback ${modeLabel}).`,
+    `Modello attivo: ${state.backupProvider}${modelPart} (fallback ${modeLabel}).`,
     `Motivo: ${reasonLabel(state.classification)}.`,
   ];
   if (state.enteredAt) lines.push(`Da: ${state.enteredAt}.`);

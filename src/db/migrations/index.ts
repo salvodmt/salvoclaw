@@ -19,6 +19,7 @@ import { moduleApprovalsTitleOptions } from './module-approvals-title-options.js
 import { migration018 } from './018-approvals-approver-user-id.js';
 import { migration019 } from './019-disabled-instructions.js';
 import { migration020 } from './020-env-and-blocked-hosts.js';
+import { migration021 } from './021-fallback-model.js';
 import { moduleFallbackState } from './module-fallback-state.js';
 
 export interface Migration {
@@ -55,6 +56,7 @@ export const migrations: Migration[] = [
   migration016,
   migration019,
   migration020,
+  migration021,
   moduleFallbackState,
 ];
 

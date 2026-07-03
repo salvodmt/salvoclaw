@@ -9,6 +9,7 @@ function baseState(overrides: Partial<FallbackState> = {}): FallbackState {
     mode: null,
     classification: null,
     reason: null,
+    backupModel: null,
     backupProvider: null,
     enteredAt: null,
     resetAt: null,
@@ -32,22 +33,22 @@ describe('effectiveProvider', () => {
   });
 
   it('returns the backup provider when fallback is active and not probing', () => {
-    const state = baseState({ active: true, backupProvider: 'opencode' });
+    const state = baseState({ active: true, backupModel: null, backupProvider: 'opencode' });
     expect(effectiveProvider('claude', state)).toBe('opencode');
   });
 
   it('returns native during a return probe, even though fallback is still active', () => {
-    const state = baseState({ active: true, backupProvider: 'opencode', probing: true });
+    const state = baseState({ active: true, backupModel: null, backupProvider: 'opencode', probing: true });
     expect(effectiveProvider('claude', state)).toBe('claude');
   });
 
   it('returns native when active but no backup provider is recorded', () => {
-    const state = baseState({ active: true, backupProvider: null });
+    const state = baseState({ active: true, backupModel: null, backupProvider: null });
     expect(effectiveProvider('claude', state)).toBe('claude');
   });
 
   it('is a no-op for a group whose native provider already equals the backup', () => {
-    const state = baseState({ active: true, backupProvider: 'opencode' });
+    const state = baseState({ active: true, backupModel: null, backupProvider: 'opencode' });
     expect(effectiveProvider('opencode', state)).toBe('opencode');
   });
 });

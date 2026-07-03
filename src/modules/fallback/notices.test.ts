@@ -21,6 +21,7 @@ function baseState(overrides: Partial<FallbackState> = {}): FallbackState {
     mode: null,
     classification: null,
     reason: null,
+    backupModel: null,
     backupProvider: null,
     enteredAt: null,
     resetAt: null,
@@ -98,6 +99,7 @@ describe('notices — pure text, no side effects', () => {
     const state = baseState({
       active: true,
       mode: 'auto',
+      backupModel: null,
       backupProvider: 'opencode',
       classification: 'quota',
       enteredAt: new Date(0).toISOString(),
@@ -113,6 +115,7 @@ describe('notices — pure text, no side effects', () => {
     const state = baseState({
       active: true,
       mode: 'forced',
+      backupModel: null,
       backupProvider: 'opencode',
       classification: 'manual',
     });
