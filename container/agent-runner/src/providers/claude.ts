@@ -473,21 +473,19 @@ export class ClaudeProvider implements AgentProvider {
           } else {
             yield { type: 'error', message: 'API retry', retryable: true };
           }
-        } else if (subtype === 'rate_limit_event') {
-          // Real shape TBD — verify against @anthropic-ai/claude-agent-sdk's
-          // sdk.d.ts once installed. classifyRateLimitEvent only fires on an
-          // actual block (status rejected/exceeded); a 'warning' status or
-          // unrecognized payload is silently ignored (no false-positive switch).
-          const raw = (message as { rate_limit?: unknown }).rate_limit ?? message;
-          const signal = classifyRateLimitEvent(raw);
-          if (signal) {
-            yield {
-              type: 'error',
-              message: signal.message,
-              retryable: false,
-              classification: signal.classification,
-              resetAt: signal.resetAt,
-            };
+        } else if (message.type === 'rate_limit_event') {
+          const rateInfo = (message as { rate_limit_info?: unknown }).rate_limit_info;
+          if (rateInfo && typeof rateInfo === 'object') {
+            const signal = classifyRateLimitEvent(rateInfo);
+            if (signal) {
+              yield {
+                type: 'error',
+                message: signal.message,
+                retryable: false,
+                classification: signal.classification,
+                resetAt: signal.resetAt,
+              };
+            }
           }
         } else if (message.type === 'system' && (message as { subtype?: string }).subtype === 'compact_boundary') {
           const meta = (message as { compact_metadata?: { pre_tokens?: number } }).compact_metadata;

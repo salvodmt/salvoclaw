@@ -13,16 +13,15 @@ export interface LimitSignal {
   message: string;
 }
 
-// Only these statuses mean the request was actually blocked. A 'warning'
-// status means the account is approaching a limit but the request still
-// went through — not a fallback trigger (spec rule 2: simple rate limiting
-// stays on the existing retry path).
-const BLOCKING_STATUSES = new Set(['rejected', 'exceeded']);
+// Only 'rejected' means the request was actually blocked. SDK status is
+// 'allowed' | 'allowed_warning' | 'rejected' — the first two mean the
+// request went through and are not a fallback trigger (spec rule 2).
+const BLOCKING_STATUSES = new Set(['rejected']);
 
 /**
- * Classifies a raw `rate_limit_event` system-message payload. Returns null
- * for anything that isn't an actual block (unknown/missing status, or an
- * explicit 'warning').
+ * Classifies a `rate_limit_event`.rate_limit_info payload. Returns null
+ * for anything that isn't an actual block (unknown/missing status, or
+ * 'allowed'/'allowed_warning').
  */
 export function classifyRateLimitEvent(raw: unknown): LimitSignal | null {
   if (!raw || typeof raw !== 'object') return null;

@@ -9,8 +9,9 @@ describe('classifyRateLimitEvent', () => {
     expect(classifyRateLimitEvent('rejected')).toBeNull();
   });
 
-  it('returns null for a warning status (spec rule 2 — stays on the retry path)', () => {
-    expect(classifyRateLimitEvent({ status: 'warning' })).toBeNull();
+  it('returns null for an allowed or allowed_warning status (spec rule 2 — stays on the retry path)', () => {
+    expect(classifyRateLimitEvent({ status: 'allowed' })).toBeNull();
+    expect(classifyRateLimitEvent({ status: 'allowed_warning' })).toBeNull();
   });
 
   it('returns null for an unknown or missing status', () => {
@@ -25,8 +26,8 @@ describe('classifyRateLimitEvent', () => {
     expect(signal?.resetAt).toBeNull();
   });
 
-  it('classifies an exceeded status as quota and converts resetsAt seconds to ms', () => {
-    const signal = classifyRateLimitEvent({ status: 'exceeded', resetsAt: 1_700_000_000 });
+  it('classifies a rejected status as quota and converts resetsAt seconds to ms', () => {
+    const signal = classifyRateLimitEvent({ status: 'rejected', resetsAt: 1_700_000_000 });
     expect(signal?.classification).toBe('quota');
     expect(signal?.resetAt).toBe(1_700_000_000 * 1000);
   });
