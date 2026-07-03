@@ -270,7 +270,7 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
         clearContinuation(config.providerName);
       }
 
-      if (err instanceof ProviderLimitError && config.providerName === 'claude') {
+      if (err instanceof ProviderLimitError && (config.providerName === 'claude' || config.providerName === 'mock')) {
         // Real usage limit on the native provider: no chat "Error:" message
         // (the switch notice, delivered host-side, replaces it), skip the
         // final markCompleted below so these rows stay 'processing' — the

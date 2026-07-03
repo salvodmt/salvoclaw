@@ -32,6 +32,9 @@ function presentConfig(row: ContainerConfigRow): Record<string, unknown> {
     packages_npm: JSON.parse(row.packages_npm),
     additional_mounts: JSON.parse(row.additional_mounts),
     cli_scope: row.cli_scope,
+    disabled_instructions: JSON.parse(row.disabled_instructions),
+    env: JSON.parse(row.env),
+    blocked_hosts: JSON.parse(row.blocked_hosts),
     updated_at: row.updated_at,
   };
 }
@@ -243,7 +246,7 @@ registerResource({
       access: 'approval',
       description:
         'Update container config scalar fields. Changes are saved but do NOT take effect until you run `ncl groups restart`. ' +
-        'Use --id <group-id> and any of: --provider, --model, --effort, --image-tag, --assistant-name, --max-messages-per-prompt, --cli-scope.',
+        'Use --id <group-id> and any of: --provider, --model, --effort, --image-tag, --assistant-name, --max-messages-per-prompt, --cli-scope, --disabled-instructions \'["interactive"]\', --env \'{"KEY":"VALUE"}\', --blocked-hosts \'["api.anthropic.com"]\'.',
       handler: async (args) => {
         const id = args.id as string;
         if (!id) throw new Error('--id is required');
@@ -271,13 +274,64 @@ registerResource({
           updates.cli_scope = scope;
         }
 
-        if (Object.keys(updates).length === 0) {
+        if (
+          Object.keys(updates).length === 0 &&
+          args['disabled-instructions'] === undefined &&
+          args.disabled_instructions === undefined &&
+          args.env === undefined &&
+          args['blocked-hosts'] === undefined &&
+          args.blocked_hosts === undefined
+        ) {
           throw new Error(
-            'Nothing to update — provide at least one of: --provider, --model, --effort, --image-tag, --assistant-name, --max-messages-per-prompt, --cli-scope',
+            'Nothing to update — provide at least one of: --provider, --model, --effort, --image-tag, --assistant-name, --max-messages-per-prompt, --cli-scope, --disabled-instructions, --env, --blocked-hosts',
           );
         }
 
-        updateContainerConfigScalars(id, updates);
+        if (Object.keys(updates).length > 0) {
+          updateContainerConfigScalars(id, updates);
+        }
+
+        const di = (args['disabled-instructions'] ?? args.disabled_instructions) as string | undefined;
+        if (di !== undefined) {
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(di);
+          } catch {
+            throw new Error('--disabled-instructions must be a valid JSON array, e.g. \'["interactive"]\'');
+          }
+          if (!Array.isArray(parsed) || !parsed.every((v: unknown) => typeof v === 'string')) {
+            throw new Error('--disabled-instructions must be a JSON array of strings');
+          }
+          updateContainerConfigJson(id, 'disabled_instructions', parsed);
+        }
+
+        const envArg = args.env as string | undefined;
+        if (envArg !== undefined) {
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(envArg);
+          } catch {
+            throw new Error('--env must be a valid JSON object, e.g. \'{"KEY":"VALUE"}\'');
+          }
+          if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+            throw new Error('--env must be a JSON object');
+          }
+          updateContainerConfigJson(id, 'env', parsed);
+        }
+
+        const blockedArg = (args['blocked-hosts'] ?? args.blocked_hosts) as string | undefined;
+        if (blockedArg !== undefined) {
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(blockedArg);
+          } catch {
+            throw new Error('--blocked-hosts must be a valid JSON array, e.g. \'["api.anthropic.com"]\'');
+          }
+          if (!Array.isArray(parsed) || !parsed.every((v: unknown) => typeof v === 'string')) {
+            throw new Error('--blocked-hosts must be a JSON array of strings');
+          }
+          updateContainerConfigJson(id, 'blocked_hosts', parsed);
+        }
 
         const updated = getContainerConfig(id)!;
         return presentConfig(updated);

@@ -459,6 +459,20 @@ async function buildContainerArgs(
     }
   }
 
+  // Per-agent-group env overrides (e.g. Ollama ANTHROPIC_BASE_URL redirection).
+  if (containerConfig.env) {
+    for (const [key, value] of Object.entries(containerConfig.env)) {
+      args.push('-e', `${key}=${value}`);
+    }
+  }
+
+  // Per-agent-group blocked hosts (e.g. resolve api.anthropic.com → 0.0.0.0 to prevent accidental spend).
+  if (containerConfig.blockedHosts) {
+    for (const host of containerConfig.blockedHosts) {
+      args.push('--add-host', `${host}:0.0.0.0`);
+    }
+  }
+
   // Egress lockdown when enabled — throws if it can't be established, aborting
   // the spawn rather than running with open egress. Otherwise the host gateway.
   if (ensureEgressNetwork()) {

@@ -42,7 +42,7 @@ import {
 } from './notices.js';
 import { summarizeBackupConversation, summarizeClaudeTranscript } from './summary.js';
 
-const envConfig = readEnvFile(['FALLBACK_PROVIDER', 'OPENCODE_MODEL']);
+const envConfig = readEnvFile(['FALLBACK_PROVIDER', 'OPENCODE_MODEL', 'OLLAMA_MODEL']);
 
 function fallbackProviderEnv(): string {
   return process.env.FALLBACK_PROVIDER || envConfig.FALLBACK_PROVIDER || '';
@@ -50,6 +50,10 @@ function fallbackProviderEnv(): string {
 
 function opencodeModelEnv(): string {
   return process.env.OPENCODE_MODEL || envConfig.OPENCODE_MODEL || '';
+}
+
+function ollamaModelEnv(): string {
+  return process.env.OLLAMA_MODEL || envConfig.OLLAMA_MODEL || '';
 }
 
 /**
@@ -213,35 +217,13 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
   }
 
   const backupProvider = fallbackProviderEnv();
-  enterFallbackState({
-    mode: opts.mode,
-    classification: opts.classification,
-    reason: opts.reason,
-    backupProvider,
-    resetAt: opts.resetAt,
-    originSessionId: opts.originSessionId,
-    originGroupId: opts.originGroupId,
-  });
-
-  if (originSession && messageIds.length > 0) {
-    const inDb = openInboundDb(originSession.agent_group_id, originSession.id);
-    try {
-      representMessages(inDb, messageIds);
-    } finally {
-      inDb.close();
-    }
-  }
-
-  try {
-    writeDegradationFragmentForAllGroups();
-  } catch (err) {
-    log.warn('Failed to write fallback degradation fragment', { err });
-  }
+  const model =
+    backupProvider === 'opencode' ? opencodeModelEnv() : backupProvider === 'ollama' ? ollamaModelEnv() : null;
 
   const notice =
     opts.mode === 'forced'
-      ? switchForcedNotice(backupProvider)
-      : switchAutoNotice(opts.classification, backupProvider, opts.resetAt);
+      ? switchForcedNotice(backupProvider, model)
+      : switchAutoNotice(opts.classification, backupProvider, opts.resetAt, model);
   if (originSession) {
     await notifyConversationOrOwner(originSession, notice);
   }

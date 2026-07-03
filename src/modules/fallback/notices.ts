@@ -33,15 +33,18 @@ export function switchAutoNotice(
   classification: FallbackClassification,
   backupProvider: string,
   resetAt: string | null,
+  model?: string | null,
 ): string {
   const reset = formatResetAt(resetAt);
   const resetPart = reset ? ` Reset previsto: ${reset}.` : '';
-  return `⚠️ Claude ha esaurito i limiti (${reasonLabel(classification)}). Passo a ${backupProvider}.${resetPart}`;
+  const modelPart = model ? ` (${model})` : '';
+  return `⚠️ Claude ha esaurito i limiti (${reasonLabel(classification)}). Passo a ${backupProvider}${modelPart}.${resetPart}`;
 }
 
 /** Rule 13: owner-forced switch, never auto-returns. */
-export function switchForcedNotice(backupProvider: string): string {
-  return `🔧 Fallback forzato manualmente su ${backupProvider}.`;
+export function switchForcedNotice(backupProvider: string, model?: string | null): string {
+  const modelPart = model ? ` (${model})` : '';
+  return `🔧 Fallback forzato manualmente su ${backupProvider}${modelPart}.`;
 }
 
 /** Rule 11: limits hit and no backup configured — message left failed, not silently re-presented. */

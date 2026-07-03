@@ -15,7 +15,7 @@
  *   NANOCLAW_AGENT_PROVIDER preselect the setup provider and skip the picker
  *                          (for packaged flows). Example: claude.
  *   NANOCLAW_SKIP          comma-separated step names to skip
- *                          (environment|container|onecli|auth|mounts|
+ *                          (environment|container|onecli|auth|fallback|mounts|
  *                           service|cli-agent|timezone|channel|
  *                           verify|first-chat)
  *
@@ -56,6 +56,7 @@ import { runAdvancedScreen } from './lib/setup-config-screen.js';
 import { runWindowedStep } from './lib/windowed-runner.js';
 import { runUninstallFlow } from './uninstall/flow.js';
 import { detectExistingInstall } from './uninstall/scan.js';
+import { runFallbackWizard } from './fallback.js';
 import { detectRegisteredGroups, detectExistingDisplayName } from './environment.js';
 import { pollHealth } from './onecli.js';
 import { getLaunchdLabel, getSystemdUnit } from '../src/install-slug.js';
@@ -375,6 +376,19 @@ async function main(): Promise<void> {
     } else {
       await runAuthStep();
     }
+  }
+
+  // Fallback provider setup — after Claude auth, before mounts/service.
+  if (!skip.has('fallback')) {
+    p.log.message(
+      brandBody(
+        dimWrap(
+          "Before we go on, let's set up a backup provider: if Claude runs out of credits or gets overloaded, the system auto-switches to the backup you pick here.",
+          4,
+        ),
+      ),
+    );
+    await runFallbackWizard();
   }
 
   if (!skip.has('mounts')) {
