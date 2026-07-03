@@ -284,7 +284,7 @@ Prossimo tentativo di rientro: 2026-07-03 15:05:00.
 | `retryCount` | `0` | Reset del contatore tentativi |
 | Tutti gli altri | `null`/`false` | Stato pulito, pronti per un eventuale nuovo fallback |
 
-In caso di rientro automatico (probe riuscito), il sistema emette un avviso "Sono tornato su Claude" e riavvia i container col provider nativo. Con `return` manuale il rientro è incondizionato: se Claude è ancora a limiti, il prossimo messaggio farà scattare un nuovo fallback con avviso.
+In caso di rientro automatico (probe riuscito), il sistema emette un avviso "Sono tornato su Claude" e riavvia i container col provider nativo. Con `return` manuale il rientro è incondizionato: se Claude è ancora a limiti, il prossimo messaggio farà scattare un nuovo fallback con avviso — senza on-wake briefing intermedio (fix `exitFallback` manual path). Inoltre, `nextRetryAt` ora viene inizializzato all'ingresso in fallback auto (`resetAt ?? now + 5min`), quindi il probe automatico parte anche quando `resetAt` è sconosciuto (es. billing).
 
 ### Note
 

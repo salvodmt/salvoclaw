@@ -233,6 +233,8 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
   const backupProvider = fallbackProviderEnv();
   const model =
     backupProvider === 'opencode' ? opencodeModelEnv() : backupProvider === 'ollama' ? ollamaModelEnv() : null;
+  const initialNextRetry =
+    opts.mode === 'forced' ? null : (opts.resetAt ?? new Date(nextRetryAt(0, Date.now())).toISOString());
 
   enterFallbackState({
     mode: opts.mode,
@@ -241,6 +243,7 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
     backupProvider,
     backupModel: model,
     resetAt: opts.resetAt,
+    nextRetryAt: initialNextRetry,
     originSessionId: opts.originSessionId,
     originGroupId: opts.originGroupId,
   });

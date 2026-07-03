@@ -293,6 +293,7 @@ describe('exitFallback', () => {
       backupModel: null,
       backupProvider: 'mock',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-origin',
       originGroupId: 'group-origin',
     });
@@ -336,6 +337,7 @@ describe('startReturnProbe', () => {
       backupModel: null,
       backupProvider: 'mock',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-origin',
       originGroupId: 'group-origin',
     });
@@ -368,6 +370,7 @@ describe('handleProbeTimeout', () => {
       backupModel: null,
       backupProvider: 'mock',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-origin',
       originGroupId: 'group-origin',
     });
@@ -430,6 +433,7 @@ describe('handleFallbackReport', () => {
       backupModel: null,
       backupProvider: 'mock',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-origin',
       originGroupId: 'group-origin',
     });
@@ -458,6 +462,7 @@ describe('handleFallbackReport', () => {
       backupModel: null,
       backupProvider: 'mock',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-origin',
       originGroupId: 'group-origin',
     });
@@ -494,6 +499,7 @@ describe('handleProviderError', () => {
       backupModel: null,
       backupProvider: 'mock',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-origin',
       originGroupId: 'group-origin',
     });
@@ -532,6 +538,7 @@ describe('handleProviderError', () => {
       backupModel: null,
       backupProvider: 'mock',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-origin',
       originGroupId: 'group-origin',
     });

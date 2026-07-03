@@ -5,6 +5,7 @@
 **Base:** main
 **Data:** 2026-07-03
 **Findings totali:** 18 (Critical: 1, High: 4, Medium: 7, Low: 6)
+**Fix applicati post-review:** vedi sezione "Fix applicati"
 
 ## Sommario esecutivo
 
@@ -275,3 +276,30 @@ text = ((JSON.parse(rawContent) as { text?: string }).text || '').trim();
 ### Design review
 
 La feature non ha interfaccia grafica — gli avvisi sono normali messaggi in chat. Nessun riferimento di design fornito — la review di design non è applicabile.
+
+## Fix applicati post-review (2026-07-03)
+
+### F-07 — RISOLTO (false finding)
+
+Il codice in `decide.ts:71` già usa `state.nextRetryAt ?? state.resetAt`, preferendo correttamente
+`nextRetryAt` su `resetAt`. Il finding era errato: la risoluzione era già corretta.
+
+### `nextRetryAt` inizializzato all'ingresso in fallback
+
+Il piano (`piano-fallback-llm.md:91`) specificava `nextRetryAt = resetAt ?? now + primo backoff`
+in modalità auto. L'implementazione iniziale in `db.ts:112` lo impostava sempre a NULL.
+**Fix:** `controller.ts` calcola `initialNextRetry` prima di chiamare `enterFallbackState`:
+- `forced` → `null` (il rientro è solo manuale)
+- `auto` con `resetAt` fornito → `resetAt` (usa il timestamp del provider)
+- `auto` senza `resetAt` → `nextRetryAt(0, Date.now())` (primo backoff a 5 minuti)
+
+File: `controller.ts:236-237`, `db.ts:95` (nuovo campo `nextRetryAt` in `EnterFallbackParams`).
+
+### On-wake briefing soppresso nel rientro manuale
+
+Dopo `/fallback return`, i container venivano riavviati con un on-wake briefing che causava
+una chiamata API Claude immediata, potenzialmente facendo scattare un nuovo fallback prima
+che l'utente avesse inviato un messaggio. **Fix:** nel percorso `via === 'manual'` di
+`exitFallback`, il briefing viene omesso; i container si risvegliano al primo messaggio reale.
+
+File: `controller.ts:336`.

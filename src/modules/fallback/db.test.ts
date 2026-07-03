@@ -32,6 +32,7 @@ describe('enterFallbackState', () => {
       backupModel: null,
       backupProvider: 'opencode',
       resetAt: '2026-01-01T00:00:00.000Z',
+      nextRetryAt: null,
       originSessionId: 'sess-1',
       originGroupId: 'group-1',
     });
@@ -57,6 +58,7 @@ describe('enterFallbackState', () => {
       backupModel: null,
       backupProvider: 'opencode',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 's1',
       originGroupId: 'g1',
     });
@@ -70,6 +72,7 @@ describe('enterFallbackState', () => {
       backupModel: null,
       backupProvider: 'opencode',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 's2',
       originGroupId: 'g2',
     });
@@ -90,6 +93,7 @@ describe('clearFallbackState', () => {
       backupModel: null,
       backupProvider: 'opencode',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 's1',
       originGroupId: 'g1',
     });
@@ -115,6 +119,7 @@ describe('setProbe', () => {
       backupModel: null,
       backupProvider: 'opencode',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 's1',
       originGroupId: 'g1',
     });
@@ -144,6 +149,7 @@ describe('bumpRetry', () => {
       backupModel: null,
       backupProvider: 'opencode',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 's1',
       originGroupId: 'g1',
     });

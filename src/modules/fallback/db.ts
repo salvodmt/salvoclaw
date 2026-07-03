@@ -92,6 +92,7 @@ export interface EnterFallbackParams {
   backupProvider: string;
   backupModel: string | null;
   resetAt: string | null;
+  nextRetryAt: string | null;
   originSessionId: string | null;
   originGroupId: string | null;
 }
@@ -107,9 +108,9 @@ export function enterFallbackState(params: EnterFallbackParams): FallbackState {
          reason = @reason,
          backup_provider = @backupProvider,
          backup_model = @backupModel,
-         entered_at = datetime('now'),
-         reset_at = @resetAt,
-         next_retry_at = NULL,
+          entered_at = datetime('now'),
+          reset_at = @resetAt,
+          next_retry_at = @nextRetryAt,
          retry_count = 0,
          probing = 0,
          probe_message_id = NULL,

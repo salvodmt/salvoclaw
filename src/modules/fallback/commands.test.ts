@@ -193,6 +193,7 @@ describe('interceptFallbackCommand — subcommand parsing', () => {
       backupModel: null,
       backupProvider: 'opencode',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-1',
       originGroupId: AGENT_GROUP_ID,
     });
@@ -252,6 +253,7 @@ describe('interceptFallbackCommand — return', () => {
       backupModel: null,
       backupProvider: 'opencode',
       resetAt: null,
+      nextRetryAt: null,
       originSessionId: 'sess-1',
       originGroupId: AGENT_GROUP_ID,
     });
