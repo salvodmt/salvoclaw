@@ -71,8 +71,8 @@ describe('notices — pure text, no side effects', () => {
   });
 
   it('forwardBriefing appends the summary only when provided', () => {
-    const withoutSummary = forwardBriefing(null);
-    const withSummary = forwardBriefing('user: ciao\nassistant: ciao a te');
+    const withoutSummary = forwardBriefing(null, 'opencode', null);
+    const withSummary = forwardBriefing('user: ciao\nassistant: ciao a te', 'opencode', null);
     expect(withoutSummary).not.toContain('Riassunto');
     expect(withSummary).toContain('Riassunto');
     expect(withSummary).toContain('ciao a te');
@@ -86,7 +86,7 @@ describe('notices — pure text, no side effects', () => {
   });
 
   it('shortSwitchBriefing mentions the backup provider', () => {
-    expect(shortSwitchBriefing('opencode')).toContain('opencode');
+    expect(shortSwitchBriefing('opencode', null)).toContain('opencode');
   });
 
   it('statusNotice reports inactive state plainly', () => {

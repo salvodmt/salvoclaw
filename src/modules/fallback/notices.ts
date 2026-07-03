@@ -69,9 +69,14 @@ export function commandDeniedNotice(): string {
 }
 
 /** Rule 6: the assistant must declare, not pretend, when running on the backup model. */
-export function forwardBriefing(summary: string | null): string {
-  const base =
-    'Sto rispondendo al posto di Claude, che ha esaurito i limiti — potrei avere meno strumenti o abilità a disposizione. Se non riesco a fare qualcosa te lo dico apertamente, non fingo.';
+export function forwardBriefing(summary: string | null, backupProvider: string, model: string | null): string {
+  const modelPart = model ? ` (modello ${model})` : '';
+  const base = [
+    `Sto rispondendo al posto di Claude, che ha esaurito i limiti.`,
+    `In questo momento sto girando su ${backupProvider}${modelPart}.`,
+    `Non sono Claude — se mi chiedono che modello sono, dico la verità: ${backupProvider}${modelPart}.`,
+    `Se non riesco a fare qualcosa lo dico apertamente, non fingo.`,
+  ].join(' ');
   return summary ? `${base}\n\nRiassunto della conversazione recente:\n${summary}` : base;
 }
 
@@ -84,8 +89,9 @@ export function returnBriefing(summary: string | null): string {
 }
 
 /** Short wake-up nudge for other agent groups restarted alongside a switch/return (not the origin conversation). */
-export function shortSwitchBriefing(backupProvider: string): string {
-  return `Sto rispondendo al posto di Claude (limiti esauriti) su ${backupProvider}. Se non riesco a fare qualcosa te lo dico apertamente, non fingo.`;
+export function shortSwitchBriefing(backupProvider: string, model: string | null): string {
+  const modelPart = model ? ` (${model})` : '';
+  return `Sto rispondendo al posto di Claude (limiti esauriti) su ${backupProvider}${modelPart}. Non sono Claude — se mi chiedono che modello sono, dico la verità.`;
 }
 
 export function shortReturnBriefing(): string {

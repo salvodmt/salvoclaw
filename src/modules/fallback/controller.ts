@@ -220,6 +220,31 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
   const model =
     backupProvider === 'opencode' ? opencodeModelEnv() : backupProvider === 'ollama' ? ollamaModelEnv() : null;
 
+  enterFallbackState({
+    mode: opts.mode,
+    classification: opts.classification,
+    reason: opts.reason,
+    backupProvider,
+    resetAt: opts.resetAt,
+    originSessionId: opts.originSessionId,
+    originGroupId: opts.originGroupId,
+  });
+
+  if (originSession && messageIds.length > 0) {
+    const inDb = openInboundDb(originSession.agent_group_id, originSession.id);
+    try {
+      representMessages(inDb, messageIds);
+    } finally {
+      inDb.close();
+    }
+  }
+
+  try {
+    writeDegradationFragmentForAllGroups();
+  } catch (err) {
+    log.warn('Failed to write fallback degradation fragment', { err });
+  }
+
   const notice =
     opts.mode === 'forced'
       ? switchForcedNotice(backupProvider, model)
@@ -236,7 +261,7 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
       log.warn('Failed to build forward context summary', { err });
     }
   }
-  const briefing = forwardBriefing(forwardSummary);
+  const briefing = forwardBriefing(forwardSummary, backupProvider, model);
 
   if (originSession) {
     restartOriginSession(originSession, briefing);
@@ -244,7 +269,7 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
   for (const group of getAllAgentGroups()) {
     if (originSession && group.id === originSession.agent_group_id) continue;
     try {
-      restartAgentGroupContainers(group.id, 'fallback-switch', shortSwitchBriefing(backupProvider));
+      restartAgentGroupContainers(group.id, 'fallback-switch', shortSwitchBriefing(backupProvider, model));
     } catch (err) {
       log.warn('Failed to restart agent group for fallback switch', { groupId: group.id, err });
     }
