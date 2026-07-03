@@ -33,6 +33,7 @@ import { initGroupFilesystem } from './group-init.js';
 import { stopTypingRefresh } from './modules/typing/index.js';
 import { log } from './log.js';
 import { validateAdditionalMounts } from './modules/mount-security/index.js';
+import { applyProviderOverride } from './provider-override.js';
 // Provider host-side config barrel — each provider that needs host-side
 // container setup self-registers on import.
 import './providers/index.js';
@@ -134,7 +135,7 @@ async function spawnContainer(session: Session): Promise<void> {
   // idempotent: it only writes paths that don't already exist, so this call
   // is a no-op for groups that have spawned before. Runs before the provider
   // contribution so a surfaces-providing provider finds the group dir ready.
-  const providerName = resolveProviderName(session.agent_provider, containerConfig.provider);
+  const providerName = applyProviderOverride(resolveProviderName(session.agent_provider, containerConfig.provider));
   initGroupFilesystem(agentGroup, { provider: providerName });
 
   // Resolve the effective provider + any host-side contribution it declares
@@ -249,7 +250,7 @@ function resolveProviderContribution(
   agentGroup: AgentGroup,
   containerConfig: import('./container-config.js').ContainerConfig,
 ): { provider: string; contribution: ProviderContainerContribution } {
-  const provider = resolveProviderName(session.agent_provider, containerConfig.provider);
+  const provider = applyProviderOverride(resolveProviderName(session.agent_provider, containerConfig.provider));
   const fn = getProviderContainerConfig(provider);
   const contribution = fn
     ? fn({
