@@ -333,7 +333,8 @@ export function exitFallback(opts: { via: 'probe' | 'manual' }): void {
     if (opts.via === 'probe' && originGroupId && group.id === originGroupId) continue;
     try {
       const groupSummary = summarizeBackupConversation(group.id, state.enteredAt);
-      const briefing = groupSummary ? returnBriefing(groupSummary) : shortReturnBriefing();
+      const briefing =
+        opts.via === 'manual' ? undefined : groupSummary ? returnBriefing(groupSummary) : shortReturnBriefing();
       restartAgentGroupContainers(group.id, 'fallback-return', briefing);
     } catch (err) {
       log.warn('Failed to restart agent group after fallback return', { groupId: group.id, err });
