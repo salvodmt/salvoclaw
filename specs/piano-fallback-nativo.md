@@ -9,18 +9,18 @@
 Salvoclaw è il fork personale di NanoClaw v2. Il valore aggiunto principale è la gestione proattiva del fallback: quando Claude esaurisce quota/credito o va in overload, l'assistente switcha automaticamente a un provider di backup.
 
 Il **runtime del fallback esiste già** (`src/modules/fallback/`). Manca:
-1. Preinstallare i provider nell'immagine
+1. ~~Preinstallare i provider nell'immagine~~ ✅ COMPLETATO
 2. Wizard di onboarding per configurare il backup
-3. Meccanismo Ollama (via wrapper provider, non via config override seam)
+3. ~~Meccanismo Ollama (via wrapper provider)~~ ✅ COMPLETATO
 
 ## Architettura
 
 ### Provider preinstallati
 
-| Provider | Meccanismo | Cosa serve |
-|----------|------------|------------|
-| `opencode` | Provider dedicato | `opencode-ai` in `cli-tools.json`, `@opencode-ai/sdk` in agent-runner, file `opencode.ts` host+container committati |
-| `ollama` | Provider wrapper attorno a ClaudeProvider | `container/agent-runner/src/providers/ollama.ts` che wrappa ClaudeProvider con env overrides (ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY=ollama). Usa il meccanismo di override esistente: `effectiveProvider` restituisce `ollama`, container.json ha `"provider": "ollama"`, il container usa il wrapper. Zero modifiche ai file core. |
+| Provider | Meccanismo | Cosa serve | Stato |
+|----------|------------|------------|-------|
+| `opencode` | Provider dedicato | `opencode-ai` in `cli-tools.json`, `@opencode-ai/sdk` in agent-runner, file `opencode.ts` host+container committati | ✅ |
+| `ollama` | Provider wrapper attorno a ClaudeProvider | `container/agent-runner/src/providers/ollama.ts` che wrappa ClaudeProvider con env overrides. Usa il meccanismo di override esistente: `effectiveProvider` restituisce `ollama`, container.json ha `"provider": "ollama"`, il container usa il wrapper. | ✅ |
 
 ### Campi `env` e `blockedHosts` in ContainerConfig
 
@@ -43,7 +43,7 @@ Flusso interattivo durante il setup:
 
 ## Implementazione
 
-### Fase 1 — Campi `env` e `blockedHosts` in ContainerConfig
+### Fase 1 — Campi `env` e `blockedHosts` in ContainerConfig ✅ COMPLETATA
 
 1. **Migration 020**: `ALTER TABLE container_configs ADD COLUMN env TEXT NOT NULL DEFAULT '{}'` e `ADD COLUMN blocked_hosts TEXT NOT NULL DEFAULT '[]'`
 2. **`src/types.ts`**: aggiungere `env: string` e `blocked_hosts: string` a `ContainerConfigRow`
@@ -53,7 +53,7 @@ Flusso interattivo durante il setup:
 6. **`src/cli/resources/groups.ts`**: aggiungere a `presentConfig()`
 7. **Dockerfile**: `chmod 777 /home/node` già presente
 
-### Fase 2 — Preinstallare OpenCode nell'immagine
+### Fase 2 — Preinstallare OpenCode nell'immagine ✅ COMPLETATA
 
 1. Fetch branch `providers` e copiare file OpenCode
 2. Barrel import: `container/agent-runner/src/providers/index.ts` e `src/providers/index.ts`
@@ -62,12 +62,21 @@ Flusso interattivo durante il setup:
 5. Copiare test guard (Dockerfile structural test)
 6. Propagare a per-group overlays esistenti
 
-### Fase 3 — Provider wrapper Ollama
+### Fase 3 — Provider wrapper Ollama ✅ COMPLETATA
 
 1. `container/agent-runner/src/providers/ollama.ts`: provider che wrappa `ClaudeProvider` con env overrides
 2. Registrare in barrel: `container/agent-runner/src/providers/index.ts`
 
-### Fase 4 — Onboarding wizard
+### Fase 3b — Miglioramenti runtime fallback ✅ COMPLETATA (extra)
+
+- `backup_model` column in `fallback_state` (migration 021) — tracciamento modello nel DB
+- `ANTHROPIC_BASE_URL` passthrough in host-side opencode provider
+- `killContainer` fix: se container già fermo, wake diretto senza kill
+- `forwardBriefing` e `fragment` semplificati: istruzione secca "Modello attuale: X via Y"
+- `ncl fallback force` ora traccia `originSessionId` per la notifica di return
+- `/fallback status` mostra `backupModel` quando presente
+
+### Fase 4 — Onboarding wizard (NON implementata)
 
 1. `setup/fallback.ts` — wizard interattivo con `inquirer`
 2. OpenRouter: fetch top 15 + fallback hardcoded + verifica custom model
@@ -77,10 +86,10 @@ Flusso interattivo durante il setup:
 6. Integrazione in `setup/auto.ts` come nuovo step (dopo `auth`)
 7. Standalone runnable: `pnpm run setup:fallback`
 
-### Fase 5 — Test e verifica
+### Fase 5 — Test e verifica (parziale)
 
-1. `pnpm run build` — compilazione host
-2. `pnpm test` — tutti i test passano
+1. `pnpm run build` — compilazione host ✅
+2. `pnpm test` — tutti i test passano ✅
 3. `cd container/agent-runner && bun test` — test container
-4. `./container/build.sh` — immagine include OpenCode
+4. `./container/build.sh` — immagine include OpenCode ✅
 5. Typecheck: `pnpm exec tsc -p container/agent-runner/tsconfig.json --noEmit`

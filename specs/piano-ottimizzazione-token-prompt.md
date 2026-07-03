@@ -29,38 +29,38 @@ Fatti load-bearing verificati:
 
 ## Implementazione
 
-### Step 1 — DB Migration (`src/db/migrations/019-disabled-instructions.ts`)
+### Step 1 — DB Migration ✅ COMPLETATO
 - `ALTER TABLE container_configs ADD COLUMN disabled_instructions TEXT NOT NULL DEFAULT '[]'`
 - Append al barrel `migrations/index.ts`
 
-### Step 2 — Types (`src/types.ts`)
+### Step 2 — Types ✅ COMPLETATO
 - Aggiungere `disabled_instructions: string` a `ContainerConfigRow`
 
-### Step 3 — Container Config CRUD (`src/db/container-configs.ts`)
+### Step 3 — Container Config CRUD ✅ COMPLETATO
 - Aggiungere `'disabled_instructions'` al set `JSON_COLUMNS`
 
-### Step 4 — Composer (`src/claude-md-compose.ts`)
+### Step 4 — Composer ✅ COMPLETATO
 - Parse `disabled_instructions` da `configRow` (JSON array di stringhe)
 - Skip `interactive.instructions.md` quando `"interactive"` è nella lista (stesso pattern di `cli_scope === 'disabled'`)
 - Implementare il TODO linea 71: quando `skills` non è `"all"`, includere solo skill con `instructions.md` che sono nella lista esplicita
 
-### Step 5 — CLI (`src/cli/resources/groups.ts`)
+### Step 5 — CLI ✅ COMPLETATO
 - Aggiungere `disabled_instructions` a `presentConfig()` (parsato da JSON)
 - Aggiungere `--disabled-instructions` al `config update` handler (accetta JSON array string)
 
-### Step 6 — Pulizia CLAUDE.local.md (`groups/main/CLAUDE.local.md`)
-- Copiare contenuto attuale → `groups/main/CLAUDE.local.v1-backup.md`
-- Scrivere versione minimale con solo header e convenzioni di memoria
+### Step 6 — Pulizia CLAUDE.local.md (non eseguita)
+- `groups/main/CLAUDE.local.md` non esiste più — il gruppo attivo è `dm-with-salvodmt`, la migrazione `migrateGroupsToClaudeLocal()` ha spostato il contenuto
+- Da eseguire manualmente sul gruppo `dm-with-salvodmt` se necessario
 
-### Step 7 — Snellimento container/CLAUDE.md (`container/CLAUDE.md`)
-- Rimuovere riga 1 ("You are a NanoClaw agent...")
-- Condensare sezione Memory (rimuovere frase motivazionale)
-- Versione snellita come da spec
+### Step 7 — Snellimento container/CLAUDE.md ✅ COMPLETATO
+- Rimosso "You are a NanoClaw agent..."
+- Condensata sezione Memory
+- File `groups/global/CLAUDE.md` eliminato (migrato a compose model)
 
-### Step 8 — Build e verifica
-- `./container/build.sh` (richiesto per modifica `container/CLAUDE.md`)
-- `pnpm run build` (host TypeScript)
-- Verifica che i toggle funzionino correttamente
+### Step 8 — Build e verifica ✅ COMPLETATO
+- `./container/build.sh` — immagine ricostruita con modifiche `container/CLAUDE.md`
+- `pnpm run build` — host TypeScript compila senza errori
+- Toggle funzionanti: `disabled_instructions: ["interactive"]` esclude il modulo, `skills: ["onecli-gateway"]` include solo quella skill
 
 ## Rischi / punti aperti
 
