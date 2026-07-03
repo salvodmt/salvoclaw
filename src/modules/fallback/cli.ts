@@ -8,6 +8,8 @@ import { registerResource } from '../../cli/crud.js';
 import { enterFallback, exitFallback } from './controller.js';
 import { getFallbackState } from './db.js';
 import { statusNotice } from './notices.js';
+import { getActiveSessions } from '../../db/sessions.js';
+import { log } from '../../log.js';
 
 registerResource({
   name: 'fallback',
@@ -51,13 +53,15 @@ registerResource({
       description:
         'Force the install onto the backup provider now. Never auto-returns — only `fallback return` exits it.',
       handler: async () => {
+        const sessions = getActiveSessions();
+        const originSession = sessions[0];
         await enterFallback({
           mode: 'forced',
           classification: 'manual',
           reason: 'manual ncl fallback force',
           resetAt: null,
-          originSessionId: null,
-          originGroupId: null,
+          originSessionId: originSession?.id ?? null,
+          originGroupId: originSession?.agent_group_id ?? null,
         });
         return getFallbackState();
       },
