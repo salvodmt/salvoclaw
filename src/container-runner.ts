@@ -450,8 +450,10 @@ async function buildContainerArgs(
 
   // Passthrough MOCK_PROVIDER_FAIL / MOCK_RESET_AT from host env for integration testing (spec A10).
   // Only forwarded in non-production environments to prevent accidental test-mode contamination.
-  if (process.env.NODE_ENV !== 'production' && process.env.MOCK_PROVIDER_FAIL) args.push('-e', `MOCK_PROVIDER_FAIL=${process.env.MOCK_PROVIDER_FAIL}`);
-  if (process.env.NODE_ENV !== 'production' && process.env.MOCK_RESET_AT) args.push('-e', `MOCK_RESET_AT=${process.env.MOCK_RESET_AT}`);
+  if (process.env.NODE_ENV !== 'production' && process.env.MOCK_PROVIDER_FAIL)
+    args.push('-e', `MOCK_PROVIDER_FAIL=${process.env.MOCK_PROVIDER_FAIL}`);
+  if (process.env.NODE_ENV !== 'production' && process.env.MOCK_RESET_AT)
+    args.push('-e', `MOCK_RESET_AT=${process.env.MOCK_RESET_AT}`);
 
   // Provider-contributed env vars (e.g. XDG_DATA_HOME, OPENCODE_*, NO_PROXY).
   if (providerContribution.env) {
