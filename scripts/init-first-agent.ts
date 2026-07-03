@@ -48,7 +48,7 @@ import { normalizeName } from '../src/modules/agent-to-agent/db/agent-destinatio
 import { addMember } from '../src/modules/permissions/db/agent-group-members.js';
 import { getUserRoles, grantRole } from '../src/modules/permissions/db/user-roles.js';
 import { upsertUser } from '../src/modules/permissions/db/users.js';
-import { ensureContainerConfig, updateContainerConfigScalars } from '../src/db/container-configs.js';
+import { ensureContainerConfig, updateContainerConfigJson, updateContainerConfigScalars } from '../src/db/container-configs.js';
 import { namespacedPlatformId } from '../src/platform-id.js';
 import type { AgentGroup, MessagingGroup } from '../src/types.js';
 
@@ -258,6 +258,24 @@ async function main(): Promise<void> {
         granted_by: null,
         granted_at: now,
       });
+    }
+  }
+
+  // Exclude channel-specific skills the user didn't select — keeps the agent
+  // prompt lean and free of irrelevant formatting instructions (e.g. WhatsApp
+  // JID mentions when the user only wired Telegram).
+  {
+    const ch = args.channel;
+    const isWhatsApp = ch === 'whatsapp' || ch === 'whatsapp-cloud';
+    if (!isWhatsApp) {
+      updateContainerConfigJson(ag.id, 'skills', [
+        'onecli-gateway',
+        'welcome',
+        'self-customize',
+        'agent-browser',
+        'vercel-cli',
+        'frontend-engineer',
+      ]);
     }
   }
 
