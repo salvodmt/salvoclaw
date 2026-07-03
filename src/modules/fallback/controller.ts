@@ -5,7 +5,7 @@
  * state; this file is what *changes* that state.
  */
 import type Database from 'better-sqlite3';
-import { killContainer, wakeContainer } from '../../container-runner.js';
+import { isContainerRunning, killContainer, wakeContainer } from '../../container-runner.js';
 import { restartAgentGroupContainers } from '../../container-restart.js';
 import { getAllAgentGroups } from '../../db/agent-groups.js';
 import { getMessagingGroup } from '../../db/messaging-groups.js';
@@ -137,6 +137,23 @@ async function notifyConversationOrOwner(session: Session, text: string): Promis
   }
 }
 
+function cleanupThenWake(session: Session): void {
+  try {
+    const outDb = openOutboundDbRw(session.agent_group_id, session.id);
+    try {
+      const cleared = deleteOrphanProcessingClaims(outDb);
+      if (cleared > 0)
+        log.info('Cleared orphan processing claims after fallback switch', { sessionId: session.id, cleared });
+    } finally {
+      outDb.close();
+    }
+  } catch (err) {
+    log.warn('Failed to clear orphan processing claims after fallback switch', { sessionId: session.id, err });
+  }
+  const s = getSession(session.id);
+  if (s) wakeContainer(s);
+}
+
 function restartOriginSession(session: Session, briefing: string): void {
   writeSessionMessage(session.agent_group_id, session.id, {
     id: generateId('fallback-switch'),
@@ -149,26 +166,20 @@ function restartOriginSession(session: Session, briefing: string): void {
     onWake: 1,
   });
 
-  killContainer(session.id, 'fallback-switch', () => {
-    try {
-      const outDb = openOutboundDbRw(session.agent_group_id, session.id);
-      try {
-        const cleared = deleteOrphanProcessingClaims(outDb);
-        if (cleared > 0)
-          log.info('Cleared orphan processing claims after fallback switch', { sessionId: session.id, cleared });
-      } finally {
-        outDb.close();
-      }
-    } catch (err) {
-      log.warn('Failed to clear orphan processing claims after fallback switch', { sessionId: session.id, err });
-    }
-    const s = getSession(session.id);
-    if (s) wakeContainer(s);
-  });
+  if (!isContainerRunning(session.id)) {
+    cleanupThenWake(session);
+    return;
+  }
+  killContainer(session.id, 'fallback-switch', () => cleanupThenWake(session));
 }
 
 /** Restarts a session's container and waits for it to fully exit before waking a fresh one. */
 function killAndWake(session: Session, reason: string): void {
+  if (!isContainerRunning(session.id)) {
+    const s = getSession(session.id);
+    if (s) wakeContainer(s);
+    return;
+  }
   killContainer(session.id, reason, () => {
     const s = getSession(session.id);
     if (s) wakeContainer(s);

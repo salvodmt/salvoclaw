@@ -65,13 +65,17 @@ export function composeGroupClaudeMd(group: AgentGroup): void {
   const mcpServers: Record<string, McpServerConfig> = configRow
     ? (JSON.parse(configRow.mcp_servers) as Record<string, McpServerConfig>)
     : {};
+  const disabledInstructions: string[] = configRow ? (JSON.parse(configRow.disabled_instructions) as string[]) : [];
+  const selectedSkills: string[] | 'all' = configRow ? (JSON.parse(configRow.skills) as string[] | 'all') : 'all';
   const desired = new Map<string, { type: 'symlink' | 'inline'; content: string }>();
 
-  // Skill fragments — every skill that ships an `instructions.md`.
-  // TODO (shared-source refactor): respect `container.json` skill selection.
+  // Skill fragments — respect `skills` selection from container config.
+  // When `skills` is "all", include every skill that ships an `instructions.md`.
+  // When it's an explicit list, only include skills that are in the list.
   const skillsHostDir = path.join(process.cwd(), 'container', 'skills');
   if (fs.existsSync(skillsHostDir)) {
     for (const skillName of fs.readdirSync(skillsHostDir)) {
+      if (selectedSkills !== 'all' && !selectedSkills.includes(skillName)) continue;
       const hostFragment = path.join(skillsHostDir, skillName, 'instructions.md');
       if (fs.existsSync(hostFragment)) {
         desired.set(`skill-${skillName}.md`, {
@@ -86,6 +90,7 @@ export function composeGroupClaudeMd(group: AgentGroup): void {
   // sibling `<name>.instructions.md`. These describe how the agent should
   // use that module's MCP tools (schedule_task, install_packages, etc.).
   // Skip cli.instructions.md when cli_scope is disabled.
+  // Skip any module listed in disabled_instructions.
   const cliDisabled = configRow?.cli_scope === 'disabled';
   const mcpToolsHostDir = path.join(process.cwd(), MCP_TOOLS_HOST_SUBPATH);
   if (fs.existsSync(mcpToolsHostDir)) {
@@ -94,6 +99,7 @@ export function composeGroupClaudeMd(group: AgentGroup): void {
       if (!match) continue;
       const moduleName = match[1];
       if (moduleName === 'cli' && cliDisabled) continue;
+      if (disabledInstructions.includes(moduleName)) continue;
       desired.set(`module-${moduleName}.md`, {
         type: 'symlink',
         content: `${SHARED_MCP_TOOLS_CONTAINER_BASE}/${entry}`,
