@@ -388,7 +388,12 @@ async function main(): Promise<void> {
         ),
       ),
     );
-    await runFallbackWizard();
+    try {
+      await runFallbackWizard();
+    } catch (err) {
+      p.log.warn(k.yellow(`Backup setup failed: ${err instanceof Error ? err.message : String(err)}`));
+      p.log.info('Continuing setup without backup configured.');
+    }
   }
 
   if (!skip.has('mounts')) {

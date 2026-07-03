@@ -60,6 +60,7 @@ export function decideFallbackSweep(params: DecideFallbackSweepParams): Fallback
   if (state.active && state.mode === 'auto') {
     if (state.probing) {
       if (probeRowStatus === 'completed') return { type: 'probe-success' };
+      if (probeRowStatus === 'failed') return { type: 'probe-timeout' };
       const startedAt = state.probeStartedAt ? Date.parse(state.probeStartedAt) : NaN;
       if (!Number.isNaN(startedAt) && nowMs - startedAt > 10 * 60_000) {
         return { type: 'probe-timeout' };
@@ -67,7 +68,7 @@ export function decideFallbackSweep(params: DecideFallbackSweepParams): Fallback
       return { type: 'none' };
     }
 
-    const dueAtStr = state.resetAt ?? state.nextRetryAt;
+    const dueAtStr = state.nextRetryAt ?? state.resetAt;
     const dueAt = dueAtStr ? Date.parse(dueAtStr) : NaN;
     if (!Number.isNaN(dueAt) && nowMs >= dueAt) {
       return { type: 'start-probe' };

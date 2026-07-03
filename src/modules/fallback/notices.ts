@@ -51,7 +51,7 @@ export function switchForcedNotice(backupProvider: string, model?: string | null
 export function noBackupNotice(classification: FallbackClassification, resetAt: string | null): string {
   const reset = formatResetAt(resetAt);
   const resetPart = reset ? ` Reset previsto: ${reset}.` : '';
-  return `⚠️ Claude ha esaurito i limiti (${reasonLabel(classification)}) e non c'è un modello di riserva disponibile.${resetPart} Rimandami il messaggio più tardi.`;
+  return `⚠️ Claude ha esaurito i limiti (${reasonLabel(classification)}) e non c'è un modello di riserva disponibile.${resetPart} Puoi configurare un backup rieseguendo il setup.`;
 }
 
 /** Successful return to the native provider. */
@@ -70,13 +70,12 @@ export function commandDeniedNotice(): string {
 
 /** Rule 6: the assistant must declare, not pretend, when running on the backup model. */
 export function forwardBriefing(summary: string | null, backupProvider: string, model: string | null): string {
-  const modelPart = model ? ` (modello ${model})` : '';
-  const identity = `${backupProvider}${modelPart}`;
+  const modelPart = model ? model : backupProvider;
   const base = [
-    `La tua identità è: ${identity}.`,
-    `Sei tu a rispondere, non Claude — Claude ha esaurito i limiti.`,
-    `Quando ti viene chiesto "che modello sei?" o "chi sei?" devi rispondere esattamente: "Sono ${identity}, sto sostituendo Claude."`,
-    `Non dire mai "sono un assistente virtuale" o "sono un modello avanzato" — di' sempre ${identity}.`,
+    `Claude ha esaurito i limiti — stai rispondendo tu con ${backupProvider}.`,
+    `Quando ti chiedono che modello sei, rispondi solo: "Modello attuale: ${modelPart} via ${backupProvider}."`,
+    `Non aggiungere presentazioni, non dire chi sei, non aggiungere altro. Solo il modello.`,
+    `Se ti viene chiesto di fare qualcosa che non puoi fare (tool mancante, capacità assente), dichiaralo apertamente invece di provarci o fingere.`,
   ].join(' ');
   return summary ? `${base}\n\nRiassunto della conversazione recente:\n${summary}` : base;
 }

@@ -16,10 +16,11 @@ import { getFallbackState } from './db.js';
 export const FALLBACK_FRAGMENT_NAME = 'zz-fallback.md';
 
 export function buildFallbackFragmentContent(provider: string, model: string | null): string {
-  const modelPart = model ? ` (modello ${model})` : '';
-  return `## Modalità di riserva — IDENTITÀ
+  const modelName = model ?? provider;
+  return `## Modalità di riserva
 
-**Non sei Claude. Non sei Nano. Non sei un "assistente virtuale".** Sei esattamente: ${provider}${modelPart}. Claude ha esaurito i limiti. Stai rispondendo tu al suo posto. Quando qualcuno ti chiede chi sei o che modello sei, rispondi testualmente: "Sono ${provider}${modelPart}, sto sostituendo temporaneamente Claude che ha esaurito i limiti." Non inventare altre identità.\n`;
+Claude ha esaurito i limiti. Quando ti chiedono che modello sei, rispondi solo: "Modello attuale: ${modelName} via ${provider}." Non aggiungere altro.
+Se ti viene chiesto di fare qualcosa che non puoi fare, dichiaralo apertamente.\n`;
 }
 
 function fragmentPath(folder: string): string {

@@ -301,7 +301,7 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
           channel_type: routing.channelType,
           thread_id: routing.threadId,
           content: JSON.stringify({
-            text: `Non sono riuscito a elaborare il tuo messaggio per un errore.\nDettaglio tecnico: ${errMsg}`,
+            text: `Non sono riuscito a elaborare il tuo messaggio per un errore.\nDettaglio tecnico: ${errMsg.slice(0, 500)}`,
           }),
         });
         writeMessageOut({

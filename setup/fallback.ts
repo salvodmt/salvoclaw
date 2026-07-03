@@ -69,12 +69,14 @@ function readEnvFile(): EnvConfig {
 }
 
 function writeEnvLine(key: string, value: string): void {
+  // Prevent newline injection in .env — values are single-line by design.
+  const safeValue = value.replace(/\r?\n/g, ' ');
   const content = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, 'utf-8') : '';
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const re = new RegExp(`^${escaped}=.*$`, 'm');
   const next = re.test(content)
-    ? content.replace(re, `${key}=${value}`)
-    : content.trimEnd() + (content ? '\n' : '') + `${key}=${value}\n`;
+    ? content.replace(re, `${key}=${safeValue}`)
+    : content.trimEnd() + (content ? '\n' : '') + `${key}=${safeValue}\n`;
   fs.writeFileSync(ENV_PATH, next);
 }
 
@@ -87,10 +89,14 @@ function removeEnvLine(key: string): void {
 }
 
 function logConfigEvent(msg: string): void {
-  const dir = path.join(process.cwd(), 'logs');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const entry = `[${new Date().toISOString()}] ${msg}\n`;
-  fs.appendFileSync(path.join(dir, 'fallback-setup.log'), entry);
+  try {
+    const dir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const entry = `[${new Date().toISOString()}] ${msg}\n`;
+    fs.appendFileSync(path.join(dir, 'fallback-setup.log'), entry);
+  } catch {
+    // best-effort logging — never crash the wizard
+  }
 }
 
 function onecliAvailable(): boolean {
@@ -137,7 +143,7 @@ async function fetchTopModels(): Promise<{ id: string; name: string; context_len
     if (models.length === 0) throw new Error('Empty model list');
     return models;
   } catch (err) {
-    p.log.warn(k.yellow('OpenRouter API unreachable. Showing hardcoded list.'));
+    p.log.warn(k.yellow("Lista non aggiornata — l'API di OpenRouter non è raggiungibile."));
     return HARDCODED_TOP_MODELS.map((id) => ({ id, name: id, context_length: 0 }));
   }
 }
@@ -301,9 +307,21 @@ async function setupOpenCode(current: EnvConfig): Promise<void> {
       return;
     }
   } else {
-    p.log.warn(k.yellow('OneCLI not available. Key will be saved in plaintext.'));
-    fallbackPlaintextSave(apiKey, chosenModel);
-    return;
+    p.log.warn(k.yellow('OneCLI not available. Attempting to install…'));
+    const installRes = spawnSync('bash', ['setup/onecli.sh'], { cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe'] });
+    if (installRes.status === 0 && onecliAvailable()) {
+      if (saveSecretToVault('OpenRouter', 'generic', apiKey, 'openrouter.ai', 'Authorization', 'Bearer {value}')) {
+        logConfigEvent('OpenRouter API key saved to OneCLI vault (after auto-install)');
+      } else {
+        p.log.warn(k.yellow('OneCLI could not accept the key after auto-install.'));
+        fallbackPlaintextSave(apiKey, chosenModel);
+        return;
+      }
+    } else {
+      p.log.warn(k.yellow('OneCLI auto-install failed. Key will be saved in plaintext.'));
+      fallbackPlaintextSave(apiKey, chosenModel);
+      return;
+    }
   }
 
   writeEnvLine('FALLBACK_PROVIDER', 'opencode');
@@ -402,7 +420,7 @@ async function askOllamaManualModel(): Promise<string | null> {
   return (input as string).trim() || null;
 }
 
-const invokedDirectly = process.argv[1]?.includes('fallback');
+const invokedDirectly = process.argv[1] ? path.basename(process.argv[1]) === 'fallback.ts' : false;
 if (invokedDirectly) {
   runFallbackWizard().catch((err) => {
     console.error(k.red(`Error: ${err instanceof Error ? err.message : String(err)}`));

@@ -36,7 +36,7 @@ function parseFallbackCommand(text: string): FallbackSubcommand | null {
 function isOwnerOrAdmin(userId: string | null, agentGroupId: string): boolean {
   if (!userId) return false;
   const db = getDb();
-  if (!hasTable(db, 'user_roles')) return true; // no permissions module = allow all
+  if (!hasTable(db, 'user_roles')) return false; // safety: deny all when permissions module missing
   const row = db
     .prepare(
       `SELECT 1 FROM user_roles
@@ -68,7 +68,8 @@ export async function interceptFallbackCommand(
 ): Promise<boolean> {
   let text: string;
   try {
-    text = ((JSON.parse(rawContent) as { text?: string }).text || '').trim();
+    const parsed = JSON.parse(rawContent);
+    text = typeof (parsed as { text?: unknown }).text === 'string' ? (parsed as { text: string }).text.trim() : '';
   } catch {
     text = rawContent.trim();
   }

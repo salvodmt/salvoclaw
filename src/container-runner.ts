@@ -448,9 +448,10 @@ async function buildContainerArgs(
   // Everything NanoClaw-specific is in container.json (read by runner at startup).
   args.push('-e', `TZ=${TIMEZONE}`);
 
-  // Passthrough MOCK_PROVIDER_FAIL from host env for integration testing (spec A10).
-  if (process.env.MOCK_PROVIDER_FAIL) args.push('-e', `MOCK_PROVIDER_FAIL=${process.env.MOCK_PROVIDER_FAIL}`);
-  if (process.env.MOCK_RESET_AT) args.push('-e', `MOCK_RESET_AT=${process.env.MOCK_RESET_AT}`);
+  // Passthrough MOCK_PROVIDER_FAIL / MOCK_RESET_AT from host env for integration testing (spec A10).
+  // Only forwarded in non-production environments to prevent accidental test-mode contamination.
+  if (process.env.NODE_ENV !== 'production' && process.env.MOCK_PROVIDER_FAIL) args.push('-e', `MOCK_PROVIDER_FAIL=${process.env.MOCK_PROVIDER_FAIL}`);
+  if (process.env.NODE_ENV !== 'production' && process.env.MOCK_RESET_AT) args.push('-e', `MOCK_RESET_AT=${process.env.MOCK_RESET_AT}`);
 
   // Provider-contributed env vars (e.g. XDG_DATA_HOME, OPENCODE_*, NO_PROXY).
   if (providerContribution.env) {

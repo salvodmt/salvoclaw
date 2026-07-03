@@ -78,7 +78,10 @@ function rowToState(row: FallbackStateRow): FallbackState {
 
 /** Reads the single global row. Always present — seeded by the migration. */
 export function getFallbackState(): FallbackState {
-  const row = getDb().prepare('SELECT * FROM fallback_state WHERE id = 1').get() as FallbackStateRow;
+  const row = getDb().prepare('SELECT * FROM fallback_state WHERE id = 1').get() as FallbackStateRow | undefined;
+  if (!row) {
+    throw new Error('fallback_state seed row (id=1) is missing — migration may be incomplete');
+  }
   return rowToState(row);
 }
 
@@ -197,4 +200,11 @@ export function setLastError(message: string): void {
   getDb()
     .prepare(`UPDATE fallback_state SET last_error = @message, updated_at = datetime('now') WHERE id = 1`)
     .run({ message });
+}
+
+/** Records a diagnostic event in the fallback_events table (spec rule: every switch/probe/failure gets logged). */
+export function logFallbackEvent(eventType: string, reason?: string | null, details?: string | null): void {
+  getDb()
+    .prepare(`INSERT INTO fallback_events (event_type, reason, details) VALUES (?, ?, ?)`)
+    .run(eventType, reason ?? null, details ?? null);
 }

@@ -10,9 +10,14 @@ vi.mock('../../env.js', () => ({
 
 const mockKillContainer = vi.fn();
 const mockWakeContainer = vi.fn();
+const mockIsContainerRunning = vi.fn();
 vi.mock('../../container-runner.js', () => ({
   killContainer: (...args: unknown[]) => mockKillContainer(...args),
   wakeContainer: (...args: unknown[]) => mockWakeContainer(...args),
+  isContainerRunning: (...args: unknown[]) => {
+    const fn = mockIsContainerRunning as unknown as (...a: unknown[]) => boolean;
+    return fn(...args);
+  },
 }));
 
 const mockRestartAgentGroupContainers = vi.fn();
@@ -113,6 +118,7 @@ beforeEach(() => {
   const db = initTestDb();
   runMigrations(db);
   vi.clearAllMocks();
+  mockIsContainerRunning.mockReturnValue(true);
   mockGetAllAgentGroups.mockReturnValue([]);
   mockGetDeliveryAdapter.mockReturnValue(null);
   mockPickApprover.mockReturnValue([]);
@@ -498,6 +504,12 @@ describe('handleProviderError', () => {
       probeStartedAt: new Date().toISOString(),
     });
     const session = makeSession();
+    const probeSession = makeSession({ id: 'sess-origin' });
+    mockGetSession.mockReturnValue(probeSession);
+    mockOpenInboundDb.mockReturnValue({
+      prepare: vi.fn(() => ({ run: vi.fn() })),
+      close: vi.fn(),
+    });
 
     return handleProviderError({ message: 'boom' }, session, fakeInDb).then(() => {
       const state = getFallbackState();
