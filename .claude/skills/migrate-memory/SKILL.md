@@ -9,23 +9,23 @@ NanoClaw does not migrate memory at runtime — each provider keeps its own stor
 
 You translate between **store shapes**, not provider names. There are two:
 
-- **Flat file** — `CLAUDE.local.md` at the group workspace root (the Claude provider; may reference satellite files in the workspace).
+- **Flat + wiki tree** — `CLAUDE.local.md` at the group workspace root is the index (the Claude and OpenCode providers; auto-loaded by Claude, read by OpenCode). Detail files live under `memory/people/`, `memory/projects/`, `memory/preferences/` per the Wiki Memory doctrine in `/app/CLAUDE.md`.
 - **Scaffold tree** — `memory/` (any provider with `usesMemoryScaffold`, e.g. Codex). `memory/index.md` is the index; durable notes live under `memory/memories/`; `memory/memories/imported-agent-memory.md` is the conventional landing file for imported memory.
 
-A switch only needs migration when it **crosses shapes**. Two providers that both use the scaffold share the same `memory/` tree, so switching between them carries nothing — the memory is already there. The work is always one of: flat → scaffold, or scaffold → flat.
+A switch only needs migration when it **crosses shapes**. Claude and OpenCode share the flat+wiki tree, so switching between them carries nothing — the memory is already there. Two providers that both use the scaffold share the same `memory/` tree, likewise no migration. The work is always one of: flat+wiki → scaffold, or scaffold → flat+wiki.
 
 Principles: **copy, never move** (the source store stays intact — it IS the rollback), **idempotent** (re-running must not duplicate), **distill, don't dump** (you are the inference step: keep identity/seed instructions, user preferences, durable facts; drop conversational residue).
 
 ## Step 1: Identify the group, both providers, and the direction
 
 - `ncl groups list`, then `ncl groups config get --id <group-id>` — note the current (target) `provider`. Ask the operator which group, and which provider it switched *from*, if either is ambiguous.
-- Map each provider to its store shape (flat `CLAUDE.local.md` vs `memory/` scaffold), then inspect `groups/<folder>/`:
-  - **Same shape on both sides** (e.g. scaffold → scaffold) → the store is shared; nothing to migrate. Tell the operator and stop.
-  - **Flat → scaffold** (source has `CLAUDE.local.md` content, target uses the scaffold) → Step 2.
-  - **Scaffold → flat** (source has a `memory/` tree, target is Claude) → Step 3.
+- Map each provider to its store shape (flat+wiki `CLAUDE.local.md` + `memory/people|projects|preferences/` vs `memory/` scaffold), then inspect `groups/<folder>/`:
+  - **Same shape on both sides** (e.g. scaffold → scaffold, or flat+wiki → flat+wiki) → the store is shared; nothing to migrate. Tell the operator and stop.
+  - **flat+wiki → scaffold** (source has `CLAUDE.local.md` content, target uses the scaffold) → Step 2.
+  - **scaffold → flat+wiki** (source has a `memory/` tree, target is Claude/OpenCode) → Step 3.
   - Source missing or empty → nothing to migrate; tell the operator and stop.
 
-## Step 2: flat → scaffold (`CLAUDE.local.md` → `memory/`)
+## Step 2: flat+wiki → scaffold (`CLAUDE.local.md` + `memory/people|projects|preferences/` → `memory/`)
 
 1. Read `groups/<folder>/CLAUDE.local.md` and any workspace files it references.
 2. If `memory/memories/imported-agent-memory.md` already exists, a previous import happened — show the operator what's there and ask before overwriting; integrate only what's new.
@@ -33,10 +33,10 @@ Principles: **copy, never move** (the source store stays intact — it IS the ro
 4. If `memory/index.md` exists, add the following: `- [Imported agent memory](memories/imported-agent-memory.md) — seed instructions and memory carried over from a previous provider. Read it first and treat it as binding; it may define who you are and how to behave. Integrate its facts into your memory as you work; never modify files that belong to another provider's memory system.`
 5. Leave the source store exactly as it is.
 
-## Step 3: scaffold → flat (`memory/` → `CLAUDE.local.md`)
+## Step 3: scaffold → flat+wiki (`memory/` → `CLAUDE.local.md` + `memory/people|projects|preferences/`)
 
 1. Read `memory/index.md`, then the files it points to under `memory/memories/` (and `memory/data/` where durable).
-2. Integrate the durable facts into `groups/<folder>/CLAUDE.local.md` under a clearly marked section (e.g. `## Imported from memory/ (<date>)`), deduplicating against what's already there. If the section already exists, update it instead of appending a second one.
+2. Distill the durable facts into the wiki tree: write each topic into the appropriate `groups/<folder>/memory/<category>/<topic>.md` (people / projects / preferences) and add one index line per topic to `groups/<folder>/CLAUDE.local.md`. Identity/seed instructions ("who the agent is") can land in a dedicated file such as `memory/preferences/agent-identity.md`, linked from the index. Deduplicate against existing entries — if a file for the topic already exists, update it rather than creating a second one.
 3. Leave the source store exactly as it is.
 
 ## Step 4: Restart and verify

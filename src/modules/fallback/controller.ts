@@ -5,7 +5,7 @@
  * state; this file is what *changes* that state.
  */
 import type Database from 'better-sqlite3';
-import { isContainerRunning, killContainer, wakeContainer } from '../../container-runner.js';
+import { killContainer, wakeContainer } from '../../container-runner.js';
 import { restartAgentGroupContainers } from '../../container-restart.js';
 import { getAllAgentGroups } from '../../db/agent-groups.js';
 import { getMessagingGroup } from '../../db/messaging-groups.js';
@@ -22,7 +22,6 @@ import {
   clearFallbackState,
   enterFallbackState,
   getFallbackState,
-  logFallbackEvent,
   setLastError,
   setProbe,
   type FallbackClassification,
@@ -53,8 +52,8 @@ function opencodeModelEnv(): string {
   return process.env.OPENCODE_MODEL || envConfig.OPENCODE_MODEL || '';
 }
 
-function ollamaModelEnv(): string | null {
-  return process.env.OLLAMA_MODEL || envConfig.OLLAMA_MODEL || null;
+function ollamaModelEnv(): string {
+  return process.env.OLLAMA_MODEL || envConfig.OLLAMA_MODEL || '';
 }
 
 /**
@@ -86,9 +85,7 @@ function markMessageCompleted(inDb: Database.Database, messageId: string): void 
 /** UPDATE → pending, without touching `tries` — these messages weren't the provider's fault. */
 export function representMessages(inDb: Database.Database, messageIds: string[]): void {
   if (messageIds.length === 0) return;
-  const stmt = inDb.prepare(
-    "UPDATE messages_in SET status = 'pending', timestamp = datetime('now') WHERE id = ? AND status = 'processing'",
-  );
+  const stmt = inDb.prepare("UPDATE messages_in SET status = 'pending' WHERE id = ? AND status = 'processing'");
   const tx = inDb.transaction((ids: string[]) => {
     for (const id of ids) stmt.run(id);
   });
@@ -140,49 +137,27 @@ async function notifyConversationOrOwner(session: Session, text: string): Promis
   }
 }
 
-function cleanupThenWake(session: Session): void {
-  try {
-    const outDb = openOutboundDbRw(session.agent_group_id, session.id);
+function restartOriginSession(session: Session, _briefing: string): void {
+  killContainer(session.id, 'fallback-switch', () => {
     try {
-      const cleared = deleteOrphanProcessingClaims(outDb);
-      if (cleared > 0)
-        log.info('Cleared orphan processing claims after fallback switch', { sessionId: session.id, cleared });
-    } finally {
-      outDb.close();
+      const outDb = openOutboundDbRw(session.agent_group_id, session.id);
+      try {
+        const cleared = deleteOrphanProcessingClaims(outDb);
+        if (cleared > 0)
+          log.info('Cleared orphan processing claims after fallback switch', { sessionId: session.id, cleared });
+      } finally {
+        outDb.close();
+      }
+    } catch (err) {
+      log.warn('Failed to clear orphan processing claims after fallback switch', { sessionId: session.id, err });
     }
-  } catch (err) {
-    log.warn('Failed to clear orphan processing claims after fallback switch', { sessionId: session.id, err });
-  }
-  const s = getSession(session.id);
-  if (s) wakeContainer(s);
-}
-
-function restartOriginSession(session: Session, briefing: string): void {
-  writeSessionMessage(session.agent_group_id, session.id, {
-    id: generateId('fallback-switch'),
-    kind: 'chat',
-    timestamp: new Date().toISOString(),
-    platformId: session.agent_group_id,
-    channelType: 'agent',
-    threadId: null,
-    content: JSON.stringify({ text: briefing, sender: 'system', senderId: 'system' }),
-    onWake: 1,
+    const s = getSession(session.id);
+    if (s) wakeContainer(s);
   });
-
-  if (!isContainerRunning(session.id)) {
-    cleanupThenWake(session);
-    return;
-  }
-  killContainer(session.id, 'fallback-switch', () => cleanupThenWake(session));
 }
 
 /** Restarts a session's container and waits for it to fully exit before waking a fresh one. */
 function killAndWake(session: Session, reason: string): void {
-  if (!isContainerRunning(session.id)) {
-    const s = getSession(session.id);
-    if (s) wakeContainer(s);
-    return;
-  }
   killContainer(session.id, reason, () => {
     const s = getSession(session.id);
     if (s) wakeContainer(s);
@@ -233,17 +208,13 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
   const backupProvider = fallbackProviderEnv();
   const model =
     backupProvider === 'opencode' ? opencodeModelEnv() : backupProvider === 'ollama' ? ollamaModelEnv() : null;
-  const initialNextRetry =
-    opts.mode === 'forced' ? null : (opts.resetAt ?? new Date(nextRetryAt(0, Date.now())).toISOString());
 
   enterFallbackState({
     mode: opts.mode,
     classification: opts.classification,
     reason: opts.reason,
     backupProvider,
-    backupModel: model,
     resetAt: opts.resetAt,
-    nextRetryAt: initialNextRetry,
     originSessionId: opts.originSessionId,
     originGroupId: opts.originGroupId,
   });
@@ -268,7 +239,21 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
       ? switchForcedNotice(backupProvider, model)
       : switchAutoNotice(opts.classification, backupProvider, opts.resetAt, model);
   if (originSession) {
-    await notifyConversationOrOwner(originSession, notice);
+    try {
+      const inDb = openInboundDb(originSession.agent_group_id, originSession.id);
+      inDb.prepare('CREATE TABLE IF NOT EXISTS fallback_pending_notices (session_id TEXT, notice_text TEXT)').run();
+      inDb
+        .prepare('INSERT OR REPLACE INTO fallback_pending_notices (session_id, notice_text) VALUES (?, ?)')
+        .run(originSession.id, notice);
+      inDb.close();
+      log.info('Deferred fallback notice — will be delivered with next chat response', { sessionId: originSession.id });
+    } catch (err) {
+      log.warn('Failed to store deferred fallback notice, falling back to immediate delivery', {
+        sessionId: originSession.id,
+        err,
+      });
+      await notifyConversationOrOwner(originSession, notice);
+    }
   }
 
   let forwardSummary: string | null = null;
@@ -301,11 +286,6 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
     originGroupId: opts.originGroupId,
     backupProvider,
   });
-  logFallbackEvent(
-    'enter_fallback',
-    opts.reason,
-    JSON.stringify({ mode: opts.mode, classification: opts.classification, backupProvider }),
-  );
 }
 
 /**
@@ -335,10 +315,7 @@ export function exitFallback(opts: { via: 'probe' | 'manual' }): void {
   for (const group of getAllAgentGroups()) {
     if (opts.via === 'probe' && originGroupId && group.id === originGroupId) continue;
     try {
-      const groupSummary = summarizeBackupConversation(group.id, state.enteredAt);
-      const briefing =
-        opts.via === 'manual' ? undefined : groupSummary ? returnBriefing(groupSummary) : shortReturnBriefing();
-      restartAgentGroupContainers(group.id, 'fallback-return', briefing);
+      restartAgentGroupContainers(group.id, 'fallback-return', shortReturnBriefing());
     } catch (err) {
       log.warn('Failed to restart agent group after fallback return', { groupId: group.id, err });
     }
@@ -349,11 +326,6 @@ export function exitFallback(opts: { via: 'probe' | 'manual' }): void {
     previousClassification: state.classification,
     retryCount: state.retryCount,
   });
-  logFallbackEvent(
-    'exit_fallback',
-    `via=${opts.via}`,
-    JSON.stringify({ previousClassification: state.classification, retryCount: state.retryCount }),
-  );
 }
 
 /** Starts an automatic return-to-native probe: the origin session is restarted on native Claude for one turn. */
@@ -416,11 +388,6 @@ export function handleProbeTimeout(): void {
   }
 
   bumpRetry(nextRetryIso(state.retryCount));
-  logFallbackEvent(
-    'probe_timeout',
-    'probe timeout',
-    JSON.stringify({ retryCount: state.retryCount, nextRetryAt: nextRetryIso(state.retryCount) }),
-  );
 
   if (session) {
     killAndWake(session, 'fallback-probe-timeout');
@@ -434,7 +401,6 @@ export function handleDoubleFaultTimeout(session: Session, inDb: Database.Databa
     messageIds,
   });
   for (const id of messageIds) markMessageFailed(inDb, id);
-  logFallbackEvent('double_fault', 'backup provider timeout', JSON.stringify({ messageIds }));
   void notifyConversationOrOwner(session, doubleFaultNotice());
 }
 
@@ -454,26 +420,16 @@ export async function handleFallbackReport(
   const state = getFallbackState();
 
   if (state.probing) {
+    // Rule 10: the return probe itself hit a limit again — silent re-fallback.
+    // The probe message is marked completed (never re-presented to the
+    // backup) so the return briefing never ends up in front of it.
     log.warn('Return probe hit a limit — silent re-fallback', { sessionId: session.id, classification });
-    const probeSession = state.probeSessionId ? getSession(state.probeSessionId) : undefined;
-    if (probeSession && state.probeMessageId) {
-      const probeInDb = openInboundDb(probeSession.agent_group_id, probeSession.id);
-      try {
-        if (messageIds.includes(state.probeMessageId)) {
-          markMessageCompleted(probeInDb, state.probeMessageId);
-        }
-        const rest = messageIds.filter((id) => id !== state.probeMessageId);
-        if (rest.length > 0) representMessages(probeInDb, rest);
-      } finally {
-        probeInDb.close();
-      }
+    const rest = messageIds.filter((id) => id !== state.probeMessageId);
+    if (state.probeMessageId && messageIds.includes(state.probeMessageId)) {
+      markMessageCompleted(inDb, state.probeMessageId);
     }
+    if (rest.length > 0) representMessages(inDb, rest);
     bumpRetry(nextRetryIso(state.retryCount));
-    logFallbackEvent(
-      'probe_failed',
-      'return probe hit limit during fallback',
-      JSON.stringify({ classification, retryCount: state.retryCount }),
-    );
     killAndWake(session, 'fallback-reprobe-limit');
     return;
   }
@@ -512,21 +468,7 @@ export async function handleProviderError(
 
   if (state.probing) {
     log.warn('Return probe failed with a generic error — silent re-fallback', { sessionId: session.id, message });
-    const probeSession = state.probeSessionId ? getSession(state.probeSessionId) : undefined;
-    if (probeSession && state.probeMessageId) {
-      const probeInDb = openInboundDb(probeSession.agent_group_id, probeSession.id);
-      try {
-        markMessageCompleted(probeInDb, state.probeMessageId);
-      } finally {
-        probeInDb.close();
-      }
-    }
     bumpRetry(nextRetryIso(state.retryCount));
-    logFallbackEvent(
-      'probe_failed',
-      'return probe generic error',
-      JSON.stringify({ message, retryCount: state.retryCount }),
-    );
     killAndWake(session, 'fallback-reprobe-generic-error');
     return;
   }
