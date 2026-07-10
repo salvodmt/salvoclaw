@@ -47,3 +47,9 @@ docs/maintainer-guide.md
 docs/drafts/
 forks.md
 .tokensave
+
+# graphify: local cache and machine-specific interpreter/root paths.
+# graph.html/graph.json/GRAPH_REPORT.md/manifest.json ARE tracked.
+graphify-out/cache/
+graphify-out/.graphify_python
+graphify-out/.graphify_root
