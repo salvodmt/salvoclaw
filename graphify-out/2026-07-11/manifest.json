@@ -155,82 +155,82 @@
     "semantic_hash": "91f4de3fb40b96be79816d47c1fbd5cb"
   },
   ".husky/_/applypatch-msg": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/commit-msg": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/h": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "15239a01c5554e56ff745570fb583a91",
     "semantic_hash": "15239a01c5554e56ff745570fb583a91"
   },
   ".husky/_/husky.sh": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.9027717,
     "ast_hash": "13871d2ab13e8423790ecb2c01c78c18",
     "semantic_hash": "13871d2ab13e8423790ecb2c01c78c18"
   },
   ".husky/_/post-applypatch": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/post-checkout": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.9027717,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/post-commit": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/post-merge": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.9027717,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/post-rewrite": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.9027717,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-applypatch": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-auto-gc": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.9027717,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-commit": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-merge-commit": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-push": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.9027717,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-rebase": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.9027717,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/prepare-commit-msg": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762792.8987715,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
@@ -480,9 +480,9 @@
     "semantic_hash": "1db765e5e4b8bd0b44e5294ec84f03d3"
   },
   "container/agent-runner/src/providers/opencode.ts": {
-    "mtime": 1783116250.0168211,
-    "ast_hash": "e41a533cbf2ae0e847fc467abff2663e",
-    "semantic_hash": "e41a533cbf2ae0e847fc467abff2663e"
+    "mtime": 1783765347.3355126,
+    "ast_hash": "3966757e3b9a0be207246b3521a956da",
+    "semantic_hash": ""
   },
   "container/agent-runner/src/providers/provider-registry.ts": {
     "mtime": 1783023568.3222902,
@@ -570,8 +570,8 @@
     "semantic_hash": "5e5338510be648c95e01af4b28dc78ee"
   },
   "package.json": {
-    "mtime": 1783761886.0151575,
-    "ast_hash": "a4c065ca5a87565c1655c76c76c9be25",
+    "mtime": 1783762754.8011258,
+    "ast_hash": "6264d708fa60d592cbaaca89599f5309",
     "semantic_hash": ""
   },
   "scripts/chat.ts": {
@@ -1270,9 +1270,9 @@
     "semantic_hash": ""
   },
   "src/channels/index.ts": {
-    "mtime": 1783761725.2711828,
-    "ast_hash": "f53dbd9614d6f06de9b445117191001f",
-    "semantic_hash": "f53dbd9614d6f06de9b445117191001f"
+    "mtime": 1783762754.805126,
+    "ast_hash": "46ddab55bd4dbfb09ebd6311a4a3bd0c",
+    "semantic_hash": ""
   },
   "src/circuit-breaker.test.ts": {
     "mtime": 1783023568.3462908,
@@ -1885,9 +1885,9 @@
     "semantic_hash": "3c550365a20bfa035395e40150c49c38"
   },
   "src/modules/fallback/controller.ts": {
-    "mtime": 1783761725.2711828,
-    "ast_hash": "8be52f3e81e434f0debfd2cb30b4a71b",
-    "semantic_hash": "8be52f3e81e434f0debfd2cb30b4a71b"
+    "mtime": 1783762754.805126,
+    "ast_hash": "ac3f2b53d473739ec92649013dd43f55",
+    "semantic_hash": ""
   },
   "src/modules/fallback/db.test.ts": {
     "mtime": 1783116250.0528224,
@@ -2120,9 +2120,9 @@
     "semantic_hash": "0e419bbfab54cab57572c4c0e3b2a822"
   },
   "src/providers/opencode.ts": {
-    "mtime": 1783116250.0568223,
+    "mtime": 1783765335.2510934,
     "ast_hash": "db7456d34c6a9602d214271109604c7f",
-    "semantic_hash": "db7456d34c6a9602d214271109604c7f"
+    "semantic_hash": ""
   },
   "src/providers/provider-container-registry.ts": {
     "mtime": 1783761886.0511582,
@@ -2765,9 +2765,9 @@
     "semantic_hash": "64868d7495ea5aaec00119364f415d1d"
   },
   "container/CLAUDE.md": {
-    "mtime": 1783202774.306804,
-    "ast_hash": "2b8ddc49beb1ec930f97f09f2d000049",
-    "semantic_hash": "2b8ddc49beb1ec930f97f09f2d000049"
+    "mtime": 1783763737.2262263,
+    "ast_hash": "498b86adcea8fec1ab5362b2de36c00b",
+    "semantic_hash": ""
   },
   "container/agent-runner/src/mcp-tools/agents.instructions.md": {
     "mtime": 1783023568.3222902,
@@ -3060,9 +3060,9 @@
     "semantic_hash": "9fd1aad55cc5d9a5d5c9911cd6a9ee48"
   },
   "specs/wiki-memory-via-sistema-prompt.md": {
-    "mtime": 1783198207.1558137,
-    "ast_hash": "d37773a3361c1024dace38568db2276b",
-    "semantic_hash": "d37773a3361c1024dace38568db2276b"
+    "mtime": 1783763767.9676862,
+    "ast_hash": "931e03fc4fdeaa2b36c3eb83a4853049",
+    "semantic_hash": ""
   },
   "src/modules/approvals/agent.md": {
     "mtime": 1783023568.354291,
@@ -3417,6 +3417,36 @@
   ".claude/skills/add-clidash/add/tools/clidash/public/icon-512.png": {
     "mtime": 1783761885.9671564,
     "ast_hash": "fd05f98f0594d94339902a8b89d1c60d",
+    "semantic_hash": ""
+  },
+  "src/channels/telegram-markdown-sanitize.test.ts": {
+    "mtime": 1783762705.371013,
+    "ast_hash": "ceb49561e10a53d2947325e3ee779f28",
+    "semantic_hash": ""
+  },
+  "src/channels/telegram-markdown-sanitize.ts": {
+    "mtime": 1783762705.371013,
+    "ast_hash": "b5422713d58c4a2b13b81df0f89a470a",
+    "semantic_hash": ""
+  },
+  "src/channels/telegram-pairing.test.ts": {
+    "mtime": 1783762705.371013,
+    "ast_hash": "04082d09afc3227a7acfec2cc8acaf7b",
+    "semantic_hash": ""
+  },
+  "src/channels/telegram-pairing.ts": {
+    "mtime": 1783762705.375013,
+    "ast_hash": "590e14b09c34b9b0503dd7ea77196045",
+    "semantic_hash": ""
+  },
+  "src/channels/telegram.ts": {
+    "mtime": 1783762705.375013,
+    "ast_hash": "fb01158d2c096c78b8c019c21edc1ea1",
+    "semantic_hash": ""
+  },
+  "specs/piano-automazione-sync-upstream.md": {
+    "mtime": 1783762705.371013,
+    "ast_hash": "a176ecf6a934b3055706c6da13c69913",
     "semantic_hash": ""
   }
 }
