@@ -95,14 +95,12 @@ function buildOpenCodeConfig(options: ProviderOptions): Record<string, unknown> 
     .filter(Boolean)
     .filter((mid, i, a) => a.indexOf(mid as string) === i);
 
-  const openRouterKey = process.env.OPENROUTER_API_KEY || '';
-
   const providerOptions: Record<string, unknown> =
     provider === 'anthropic'
       ? {}
       : {
           [provider]: {
-            options: { apiKey: openRouterKey || 'placeholder', baseURL: proxyUrl },
+            options: { apiKey: 'placeholder', baseURL: proxyUrl },
             ...(modelsToRegister.length > 0
               ? {
                   models: Object.fromEntries(
@@ -246,8 +244,7 @@ export class OpenCodeProvider implements AgentProvider {
     };
 
     const self = this;
-    const rawIdle = Number(process.env.OPENCODE_IDLE_TIMEOUT_MS);
-    const IDLE_TIMEOUT_MS = Number.isNaN(rawIdle) ? 300_000 : rawIdle;
+    const IDLE_TIMEOUT_MS = Number(process.env.OPENCODE_IDLE_TIMEOUT_MS) || 300_000;
 
     async function* gen(): AsyncGenerator<ProviderEvent> {
       let initYielded = false;
