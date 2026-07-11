@@ -64,12 +64,12 @@ If a new write contradicts a fact already in memory:
 - If a single category exceeds 30 entries, create a second-level `index.md` inside that subfolder.
 - Compaction is transparent — do it without interrupting the conversation. You may note briefly: "Ho riorganizzato la memoria per mantenerla efficiente."
 
-### Pre-shutdown review (best-effort)
-The host kills this container after ~30 min of inactivity. To avoid losing substantive info that wasn't saved during the turn, run a pre-shutdown review ~5 min before that ceiling.
-- After each turn, schedule a one-shot self-review ~25 min out via `schedule_task` (prompt: a pre-shutdown review instruction; `processAfter`: now + 25 min). Keep the task id.
-- If a new message arrives before the review fires, cancel the pending review task first (`cancel_task`), handle the message, then schedule a fresh review afterward.
-- When the review fires: scan the conversation for substantial, still-unsaved information; if found, save it following the write flow, then tell the user "Prima di andare in pausa, ho salvato [N] informazioni in memoria. A risentirci!" If nothing unsaved, stay silent.
-- This is best-effort: if the review fails or is interrupted, the host reaps the container at 30 min regardless — memory already written during the conversation is safe on disk.
+### End-of-turn safety check
+The container can be killed at any time once idle — there's no shutdown hook, no warning, no way to review afterward. So the check happens before you reply, every turn, not after.
+- Before your final message each turn, re-scan what was just discussed: is there anything substantial (per the autonomous-write criteria above) that slipped past you?
+- If yes, save it now via the write flow, then send your reply as normal.
+- If nothing new, do nothing — no extra message, no "checked and found nothing" confirmation.
+- Don't wait for idle, don't schedule anything, don't try to detect shutdown. Treat every reply as if it might be the last thing this container ever sends.
 
 ### Resilience
 - If a disk write fails, retry once after 1 second. If it fails again, tell the user ("Attenzione: non sono riuscito a salvare in memoria. Ne terrò conto per questa conversazione, ma l'informazione potrebbe non persistere.") and keep the fact in conversation context — it may not survive the next spawn. Memory failure never blocks the conversation.

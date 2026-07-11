@@ -65,42 +65,38 @@ Per ogni scrittura, autonoma o su comando:
 3. Se l'argomento e' nuovo, creare un nuovo file `memory/<categoria>/<argomento>.md`
 4. Aggiornare CLAUDE.local.md aggiungendo o modificando la riga indice corrispondente
 
-#### 2.4. Review pre-shutdown
+#### 2.4. Controllo di fine turno
 
-Il container e' effimero: viene killato dall'host dopo 30 minuti di inattivita'.
-Per evitare che informazioni sostanziali vadano perse, l'agente anticipa lo
-spegnimento con una review finale.
+Il container e' effimero e puo' essere killato dall'host in qualsiasi momento dopo
+l'inattivita', senza segnali di preavviso e senza alcun hook di shutdown a
+disposizione dell'agente. I tool MCP `schedule_task`/`cancel_task` che rendevano
+possibile una review differita non esistono piu' (sostituiti da `ncl tasks`, vedi
+`docs/ncl-tasks-migration.md`): ogni task creato con `ncl tasks` vive in una
+task-session isolata, separata dalla sessione di chat che l'ha originata, e non ha
+accesso alla conversazione che dovrebbe rivedere. Una review pre-shutdown differita
+e' quindi strutturalmente impossibile con l'architettura attuale.
 
-2.4.1. Dopo **25 minuti** di idle continuativo (nessun nuovo messaggio ricevuto),
-      l'agente avvia la review pre-shutdown.
+Il controllo si sposta percio' **prima** dell'invio della risposta, ad ogni turno,
+invece che dopo, in prossimita' dello shutdown.
 
-2.4.2. La review esamina la conversazione corrente e identifica informazioni
-      sostanziali (secondo i criteri del punto 2.1) che **non** sono ancora state
-      salvate in memoria.
+2.4.1. Prima di inviare il messaggio finale di ogni turno, l'agente ripassa quanto
+      appena discusso e verifica se c'e' materiale sostanziale (secondo i criteri
+      del punto 2.1) non ancora salvato in memoria.
 
-2.4.3. Se vengono trovate informazioni non salvate:
-      - L'agente le scrive in memoria seguendo il flusso di scrittura standard (2.3)
-      - Notifica l'utente: "Prima di andare in pausa, ho salvato [N] informazioni
-        in memoria. A risentirci!"
-      - Il container esce pulito (process.exit)
+2.4.2. Se trova informazioni non salvate, le scrive seguendo il flusso di scrittura
+      standard (2.3), poi prosegue normalmente con la risposta al turno.
 
-2.4.4. Se **nessuna** informazione sostanziale non salvata viene trovata:
-      - L'agente non scrive nulla
-      - Il container esce pulito senza notifiche
+2.4.3. Se non trova nulla di nuovo, non fa nulla: nessun messaggio aggiuntivo,
+      nessuna conferma del controllo stesso.
 
-2.4.5. La review pre-shutdown e' best-effort: se il processo di review fallisce o
-       viene interrotto, il container esce comunque. La memoria gia' scritta durante
-       la conversazione e' salva su disco.
+2.4.4. Il controllo avviene ad ogni turno, non solo in prossimita' dello shutdown:
+      copre l'intera conversazione in modo incrementale, con una copertura pari o
+      superiore alla vecchia review pre-shutdown (che copriva solo l'ultimo batch
+      prima del kill, ed era comunque solo best-effort).
 
-2.4.6. **Meccanismo di schedulazione.** L'agente non ha un timer di idle proprio:
-       riceve messaggi solo quando arrivano e l'host lo kill a 30 min di inattivita'.
-       Per realizzare la review a 25 min restando nell'ambito "solo system prompt",
-       dopo ogni turno l'agente schedula un task one-shot a +25 min via il MCP tool
-       `mcp__nanoclaw__schedule_task` (`processAfter` = now + 25 min), il cui prompt
-       e' una istruzione di self-review. Se un nuovo messaggio arriva prima del fire,
-       l'agente cancella il task pendente (`cancel_task`), gestisce il messaggio, e
-       riprogramma una nuova review dopo il turno. Il fire-path riusa il flusso di
-       scrittura standard (2.3).
+2.4.5. Non c'e' piu' un messaggio di commiato dedicato ("Prima di andare in pausa,
+      ho salvato...") perche' non esiste alcun segnale affidabile, nella nuova
+      architettura, che una sessione stia per essere killata per inattivita'.
 
 ### 3. Lettura della memoria
 
@@ -204,11 +200,15 @@ spegnimento con una review finale.
    `container/CLAUDE.md` (nuova sezione `## Wiki Memory`) + aggiornamento della skill
    `migrate-memory`. L'allineamento dello scaffold Codex (`memory-scaffold.ts`,
    template, `group-init.ts`) e' differito a un lavoro separato (B-full).
-2. **Review pre-shutdown (2.4).** Implementata come dottrina + auto-scheduling:
-   l'agente schedula un task one-shot a +25 min via `schedule_task` dopo ogni turno e
-   lo cancella se un nuovo messaggio arriva prima. L'agente non ha un timer di idle
-   proprio; l'auto-scheduling e' il meccanismo che rende la review effettivamente
-   eseguibile restando nell'ambito "solo system prompt".
+2. **Controllo di fine turno (2.4).** Implementato come dottrina pura, senza alcuna
+   schedulazione. Dopo la rimozione dei tool MCP `schedule_task`/`cancel_task`
+   (sostituiti da `ncl tasks`, che crea sempre una task-session isolata e separata
+   dalla chat che l'ha originata) non esiste piu' alcun meccanismo che permetta a una
+   review differita di rivedere la conversazione che dovrebbe controllare — ne' un
+   hook di shutdown nel codice host (il kill e' un semplice `docker stop -t 1`, senza
+   percorso di graceful shutdown). Il controllo si sposta quindi a fine turno, prima
+   dell'invio della risposta: resta pienamente nell'ambito "solo system prompt" e non
+   introduce alcuna dipendenza da scheduling.
 3. **Copertura provider.** La dottrina wiki raggiunge Claude e OpenCode via
    `/app/CLAUDE.md` (bind-mount RO, `defaultSurfaces`). Codex (surfaces-owning,
    `usesMemoryScaffold`) non riceve `container/CLAUDE.md` montato e usa il proprio
@@ -236,8 +236,8 @@ spegnimento con una review finale.
 | Scrittura memoria — fallimento I/O | Primo tentativo fallito → secondo tentativo dopo 1s. Se fallisce ancora: "Attenzione: non sono riuscito a salvare in memoria. Ne terro' conto per questa conversazione, ma l'informazione potrebbe non persistere." |
 | Lettura memoria — informazione non trovata | "Non trovo informazioni su [argomento] nella mia memoria." |
 | Lettura memoria — informazione trovata | L'agente include l'informazione nella risposta, citando la fonte: "Come discusso in precedenza, [info]." |
-| Review pre-shutdown — trovato materiale da salvare | "Prima di andare in pausa, ho salvato [N] informazioni in memoria. A risentirci!" |
-| Review pre-shutdown — nessun nuovo contenuto | Il container esce in silenzio, senza notifiche |
+| Controllo di fine turno — trovato materiale da salvare | L'agente salva seguendo il flusso standard (2.3), poi risponde normalmente al turno; nessun messaggio di commiato dedicato. |
+| Controllo di fine turno — nessun nuovo contenuto | Nessuna azione aggiuntiva; l'agente risponde normalmente al turno. |
 
 ## Side effect
 

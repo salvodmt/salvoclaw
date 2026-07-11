@@ -83,24 +83,34 @@ function wrapPromptWithContext(text: string, systemInstructions?: string): strin
   return out;
 }
 
+/**
+ * `model`/`OPENCODE_MODEL` are "<provider>/<model>" strings; the SDK's
+ * per-request `model` field wants the parts split ({ providerID, modelID }).
+ */
+function resolveModelId(provider: string, model: string | undefined): string | undefined {
+  return model ? model.replace(new RegExp(`^${provider}/`), '') : undefined;
+}
+
 function buildOpenCodeConfig(options: ProviderOptions): Record<string, unknown> {
   const provider = process.env.OPENCODE_PROVIDER || 'anthropic';
   const model = process.env.OPENCODE_MODEL;
   const smallModel = process.env.OPENCODE_SMALL_MODEL;
   const proxyUrl = process.env.ANTHROPIC_BASE_URL;
 
-  const providerModelId = model ? model.replace(new RegExp(`^${provider}/`), '') : undefined;
-  const providerSmallModelId = smallModel ? smallModel.replace(new RegExp(`^${provider}/`), '') : undefined;
+  const providerModelId = resolveModelId(provider, model);
+  const providerSmallModelId = resolveModelId(provider, smallModel);
   const modelsToRegister = [providerModelId, providerSmallModelId]
     .filter(Boolean)
     .filter((mid, i, a) => a.indexOf(mid as string) === i);
+
+  const openRouterKey = process.env.OPENROUTER_API_KEY || '';
 
   const providerOptions: Record<string, unknown> =
     provider === 'anthropic'
       ? {}
       : {
           [provider]: {
-            options: { apiKey: 'placeholder', baseURL: proxyUrl },
+            options: { apiKey: openRouterKey || 'placeholder', baseURL: proxyUrl },
             ...(modelsToRegister.length > 0
               ? {
                   models: Object.fromEntries(
@@ -280,9 +290,18 @@ export class OpenCodeProvider implements AgentProvider {
           initYielded = true;
         }
 
+        // Config's top-level `model` sets a session default, but promptAsync
+        // doesn't reliably honor it — without an explicit per-request model,
+        // the server falls back to its own catalog default instead of ours.
+        const provider = process.env.OPENCODE_PROVIDER || 'anthropic';
+        const modelId = resolveModelId(provider, process.env.OPENCODE_MODEL);
+
         const promptRes = await client.session.promptAsync({
           path: { id: sessionId },
-          body: { parts: [{ type: 'text', text }] },
+          body: {
+            parts: [{ type: 'text', text }],
+            ...(modelId ? { model: { providerID: provider, modelID: modelId } } : {}),
+          },
         });
         if (promptRes.error) {
           self.activeSessionId = undefined;
