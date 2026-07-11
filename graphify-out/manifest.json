@@ -155,82 +155,82 @@
     "semantic_hash": "91f4de3fb40b96be79816d47c1fbd5cb"
   },
   ".husky/_/applypatch-msg": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/commit-msg": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/h": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7513309,
     "ast_hash": "15239a01c5554e56ff745570fb583a91",
     "semantic_hash": "15239a01c5554e56ff745570fb583a91"
   },
   ".husky/_/husky.sh": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "13871d2ab13e8423790ecb2c01c78c18",
     "semantic_hash": "13871d2ab13e8423790ecb2c01c78c18"
   },
   ".husky/_/post-applypatch": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/post-checkout": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/post-commit": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/post-merge": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/post-rewrite": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-applypatch": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-auto-gc": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-commit": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-merge-commit": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-push": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/pre-rebase": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
   ".husky/_/prepare-commit-msg": {
-    "mtime": 1783760630.2586424,
+    "mtime": 1783762059.7553308,
     "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
     "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
   },
@@ -480,9 +480,9 @@
     "semantic_hash": "1db765e5e4b8bd0b44e5294ec84f03d3"
   },
   "container/agent-runner/src/providers/opencode.ts": {
-    "mtime": 1783116250.0168211,
-    "ast_hash": "e41a533cbf2ae0e847fc467abff2663e",
-    "semantic_hash": "e41a533cbf2ae0e847fc467abff2663e"
+    "mtime": 1783762466.2532346,
+    "ast_hash": "25027646cfce60848c33e06835407f3d",
+    "semantic_hash": ""
   },
   "container/agent-runner/src/providers/provider-registry.ts": {
     "mtime": 1783023568.3222902,
@@ -2120,9 +2120,9 @@
     "semantic_hash": "0e419bbfab54cab57572c4c0e3b2a822"
   },
   "src/providers/opencode.ts": {
-    "mtime": 1783116250.0568223,
-    "ast_hash": "db7456d34c6a9602d214271109604c7f",
-    "semantic_hash": "db7456d34c6a9602d214271109604c7f"
+    "mtime": 1783762466.2492344,
+    "ast_hash": "8c09105ddb0307a365ccd93d2d56e38e",
+    "semantic_hash": ""
   },
   "src/providers/provider-container-registry.ts": {
     "mtime": 1783761886.0511582,
