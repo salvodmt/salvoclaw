@@ -214,7 +214,9 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
     classification: opts.classification,
     reason: opts.reason,
     backupProvider,
+    backupModel: model,
     resetAt: opts.resetAt,
+    nextRetryAt: null,
     originSessionId: opts.originSessionId,
     originGroupId: opts.originGroupId,
   });
