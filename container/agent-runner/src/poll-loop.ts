@@ -266,6 +266,15 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
       const errMsg = err instanceof Error ? err.message : String(err);
       log(`Query error: ${errMsg}`);
 
+      // Detect cross-mount page-cache corruption (same check as the follow-up
+      // poll path at line ~482). Reopening inside the container doesn't
+      // recover; only a fresh mount does. Exit so host-sweep respawns.
+      if (isCorruptionError(errMsg)) {
+        log(`Corruption detected in initial-batch path — exiting for fresh mount`);
+        setTimeout(() => process.exit(75), 100);
+        return;
+      }
+
       // Stale/corrupt continuation recovery: ask the provider whether
       // this error means the stored continuation is unusable, and clear
       // it so the next attempt starts fresh.

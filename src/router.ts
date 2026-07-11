@@ -311,71 +311,80 @@ export async function routeInbound(event: InboundEvent): Promise<void> {
   let subscribed = false;
 
   for (const agent of agents) {
-    const agentGroup = getAgentGroup(agent.agent_group_id);
-    if (!agentGroup) continue;
+    try {
+      const agentGroup = getAgentGroup(agent.agent_group_id);
+      if (!agentGroup) continue;
 
-    // Effective thread id for THIS wiring: the event-derived address is
-    // policy-stripped when the wiring (or its channel declaration) opts out
-    // of threads. event.replyTo is operator intent from the CLI admin
-    // transport and is never nulled. Guard: platform thread ids must never
-    // collide with the reserved 'system:%' session namespace
-    // (src/db/sessions.ts) — they are platform-native identifiers, and this
-    // is the only place an inbound thread id enters session resolution.
-    const threadsEnabled = resolveThreadPolicy(
-      agent.threads ?? null,
-      channelDefaults,
-      mg.is_group === 1,
-      supportsThreads,
-    );
-    const effectiveThreadId = threadsEnabled ? event.threadId : null;
+      // Effective thread id for THIS wiring: the event-derived address is
+      // policy-stripped when the wiring (or its channel declaration) opts out
+      // of threads. event.replyTo is operator intent from the CLI admin
+      // transport and is never nulled. Guard: platform thread ids must never
+      // collide with the reserved 'system:%' session namespace
+      // (src/db/sessions.ts) — they are platform-native identifiers, and this
+      // is the only place an inbound thread id enters session resolution.
+      const threadsEnabled = resolveThreadPolicy(
+        agent.threads ?? null,
+        channelDefaults,
+        mg.is_group === 1,
+        supportsThreads,
+      );
+      const effectiveThreadId = threadsEnabled ? event.threadId : null;
 
-    const engages = evaluateEngage(agent, messageText, isMention, mg, effectiveThreadId);
+      const engages = evaluateEngage(agent, messageText, isMention, mg, effectiveThreadId);
 
-    const accessOk = engages && (!accessGate || accessGate(event, userId, mg, agent.agent_group_id).allowed);
-    const scopeOk = engages && (!senderScopeGate || senderScopeGate(event, userId, mg, agent).allowed);
+      const accessOk = engages && (!accessGate || accessGate(event, userId, mg, agent.agent_group_id).allowed);
+      const scopeOk = engages && (!senderScopeGate || senderScopeGate(event, userId, mg, agent).allowed);
 
-    if (engages && accessOk && scopeOk) {
-      await deliverToAgent(agent, agentGroup, mg, event, userId, threadsEnabled, effectiveThreadId, true);
-      engagedCount++;
+      if (engages && accessOk && scopeOk) {
+        await deliverToAgent(agent, agentGroup, mg, event, userId, threadsEnabled, effectiveThreadId, true);
+        engagedCount++;
 
-      // Mention-sticky: ask the adapter to subscribe the thread so the
-      // platform's subscribed-message path carries follow-ups without
-      // requiring another @mention. Uses this wiring's OWN effective thread
-      // id — a non-null value already implies the adapter supports threads
-      // (resolveThreadPolicy hard-ANDs the capability). DMs, non-threaded
-      // platforms, and thread-opted-out wirings skip.
-      if (
-        !subscribed &&
-        agent.engage_mode === 'mention-sticky' &&
-        adapter?.subscribe &&
-        effectiveThreadId !== null &&
-        mg.is_group !== 0
-      ) {
-        subscribed = true;
-        // Fire-and-forget — subscribe is platform-side bookkeeping and
-        // shouldn't block message routing. Errors are logged inside the
-        // adapter (or by the promise rejection handler below).
-        void adapter.subscribe(event.platformId, effectiveThreadId).catch((err) => {
-          log.warn('adapter.subscribe failed', { channelType: event.channelType, threadId: effectiveThreadId, err });
+        // Mention-sticky: ask the adapter to subscribe the thread so the
+        // platform's subscribed-message path carries follow-ups without
+        // requiring another @mention. Uses this wiring's OWN effective thread
+        // id — a non-null value already implies the adapter supports threads
+        // (resolveThreadPolicy hard-ANDs the capability). DMs, non-threaded
+        // platforms, and thread-opted-out wirings skip.
+        if (
+          !subscribed &&
+          agent.engage_mode === 'mention-sticky' &&
+          adapter?.subscribe &&
+          effectiveThreadId !== null &&
+          mg.is_group !== 0
+        ) {
+          subscribed = true;
+          // Fire-and-forget — subscribe is platform-side bookkeeping and
+          // shouldn't block message routing. Errors are logged inside the
+          // adapter (or by the promise rejection handler below).
+          void adapter.subscribe(event.platformId, effectiveThreadId).catch((err) => {
+            log.warn('adapter.subscribe failed', { channelType: event.channelType, threadId: effectiveThreadId, err });
+          });
+        }
+      } else if (agent.ignored_message_policy === 'accumulate' && !(engages && (!accessOk || !scopeOk))) {
+        // Accumulate stores the message as silent context. We allow it when
+        // engagement simply didn't fire, but NOT when engagement fired and
+        // the access/scope gate refused — those refusals are security
+        // decisions about an untrusted sender, and silently storing their
+        // message (which also stages their attachments to disk via
+        // writeSessionMessage → extractAttachmentFiles) is exactly what the
+        // gate is meant to prevent.
+        await deliverToAgent(agent, agentGroup, mg, event, userId, threadsEnabled, effectiveThreadId, false);
+        accumulatedCount++;
+      } else {
+        log.debug('Message not engaged for agent (drop policy)', {
+          agentGroupId: agent.agent_group_id,
+          engage_mode: agent.engage_mode,
+          engages,
+          accessOk,
+          scopeOk,
         });
       }
-    } else if (agent.ignored_message_policy === 'accumulate' && !(engages && (!accessOk || !scopeOk))) {
-      // Accumulate stores the message as silent context. We allow it when
-      // engagement simply didn't fire, but NOT when engagement fired and
-      // the access/scope gate refused — those refusals are security
-      // decisions about an untrusted sender, and silently storing their
-      // message (which also stages their attachments to disk via
-      // writeSessionMessage → extractAttachmentFiles) is exactly what the
-      // gate is meant to prevent.
-      await deliverToAgent(agent, agentGroup, mg, event, userId, threadsEnabled, effectiveThreadId, false);
-      accumulatedCount++;
-    } else {
-      log.debug('Message not engaged for agent (drop policy)', {
+    } catch (err) {
+      // Per-agent isolation: a DB error or delivery failure for one agent
+      // must not abort the fan-out loop for the remaining agents.
+      log.error('Error routing to agent — skipping, continuing fan-out', {
         agentGroupId: agent.agent_group_id,
-        engage_mode: agent.engage_mode,
-        engages,
-        accessOk,
-        scopeOk,
+        err,
       });
     }
   }

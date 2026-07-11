@@ -264,8 +264,14 @@ async function sweepSession(session: Session): Promise<void> {
 
     // 5. Recurrence fanout for completed recurring tasks.
     // MODULE-HOOK:scheduling-recurrence:start
-    const { handleRecurrence } = await import('./modules/scheduling/recurrence.js');
-    await handleRecurrence(inDb, session);
+    try {
+      const { handleRecurrence } = await import('./modules/scheduling/recurrence.js');
+      await handleRecurrence(inDb, session);
+    } catch (err) {
+      // Module hook isolation: a recurrence failure must not abort the
+      // rest of the session sweep (task session GC below).
+      log.warn('Recurrence handler failed — continuing sweep', { sessionId: session.id, err });
+    }
     // MODULE-HOOK:scheduling-recurrence:end
 
     // 6. GC spent task sessions. An isolated per-task session with no live task

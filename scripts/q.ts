@@ -28,6 +28,7 @@ if (!dbPath || sql === undefined) {
 }
 
 const db = new Database(dbPath);
+db.pragma('busy_timeout = 5000');
 try {
   try {
     const stmt = db.prepare(sql);

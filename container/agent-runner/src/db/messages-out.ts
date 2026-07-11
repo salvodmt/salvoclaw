@@ -46,35 +46,49 @@ export function writeMessageOut(msg: WriteMessageOut): number {
   const outbound = getOutboundDb();
   const inbound = getInboundDb();
 
-  // Read max seq from both DBs to maintain global ordering.
-  // Safe: each side only reads the other DB, never writes to it.
-  const maxOut = (outbound.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM messages_out').get() as { m: number }).m;
-  const maxIn = (inbound.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM messages_in').get() as { m: number }).m;
-  const max = Math.max(maxOut, maxIn);
-  const nextSeq = max % 2 === 0 ? max + 1 : max + 2; // next odd
+  // BEGIN IMMEDIATE serializes concurrent writers (poll-loop + MCP subprocess)
+  // so the read-modify-write on seq is atomic. Without this, two writers can
+  // read the same max and collide on INSERT — the UNIQUE constraint prevents
+  // corruption but drops the second response. Same pattern as cli/ncl.ts.
+  outbound.exec('BEGIN IMMEDIATE');
+  try {
+    const maxOut = (outbound.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM messages_out').get() as { m: number }).m;
+    const maxIn = (inbound.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM messages_in').get() as { m: number }).m;
+    const max = Math.max(maxOut, maxIn);
+    const nextSeq = max % 2 === 0 ? max + 1 : max + 2; // next odd
 
-  // bun:sqlite requires named parameters to be passed with the prefix character
-  // in the JS object keys (better-sqlite3 auto-stripped it, bun:sqlite does not).
-  outbound
-    .prepare(
-      `INSERT INTO messages_out (id, seq, in_reply_to, timestamp, deliver_after, recurrence, kind, platform_id, channel_type, thread_id, content)
+    // bun:sqlite requires named parameters to be passed with the prefix character
+    // in the JS object keys (better-sqlite3 auto-stripped it, bun:sqlite does not).
+    outbound
+      .prepare(
+        `INSERT INTO messages_out (id, seq, in_reply_to, timestamp, deliver_after, recurrence, kind, platform_id, channel_type, thread_id, content)
      VALUES ($id, $seq, $in_reply_to, $timestamp, $deliver_after, $recurrence, $kind, $platform_id, $channel_type, $thread_id, $content)`,
-    )
-    .run({
-      $id: msg.id,
-      $seq: nextSeq,
-      $timestamp: new Date().toISOString(),
-      $in_reply_to: msg.in_reply_to ?? null,
-      $deliver_after: msg.deliver_after ?? null,
-      $recurrence: msg.recurrence ?? null,
-      $kind: msg.kind,
-      $platform_id: msg.platform_id ?? null,
-      $channel_type: msg.channel_type ?? null,
-      $thread_id: msg.thread_id ?? null,
-      $content: msg.content,
-    });
+      )
+      .run({
+        $id: msg.id,
+        $seq: nextSeq,
+        $timestamp: new Date().toISOString(),
+        $in_reply_to: msg.in_reply_to ?? null,
+        $deliver_after: msg.deliver_after ?? null,
+        $recurrence: msg.recurrence ?? null,
+        $kind: msg.kind,
+        $platform_id: msg.platform_id ?? null,
+        $channel_type: msg.channel_type ?? null,
+        $thread_id: msg.thread_id ?? null,
+        $content: msg.content,
+      });
 
-  return nextSeq;
+    outbound.exec('COMMIT');
+    return nextSeq;
+  } catch (e) {
+    try {
+      outbound.exec('ROLLBACK');
+    } catch {
+      // ROLLBACK can throw if the transaction was already rolled back (e.g.
+      // by a constraint violation that auto-rolled). Safe to ignore.
+    }
+    throw e;
+  }
 }
 
 /**

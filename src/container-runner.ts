@@ -114,8 +114,7 @@ export function wakeContainer(session: Session): Promise<boolean> {
 async function spawnContainer(session: Session): Promise<void> {
   const agentGroup = getAgentGroup(session.agent_group_id);
   if (!agentGroup) {
-    log.error('Agent group not found', { agentGroupId: session.agent_group_id });
-    return;
+    throw new Error(`Agent group not found: ${session.agent_group_id}`);
   }
 
   // Refresh the destination map and default reply routing so any admin

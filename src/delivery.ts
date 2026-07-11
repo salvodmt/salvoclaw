@@ -248,8 +248,7 @@ async function deliverMessage(
   inDb: Database.Database,
 ): Promise<string | undefined> {
   if (!deliveryAdapter) {
-    log.warn('No delivery adapter configured, dropping message', { id: msg.id });
-    return;
+    throw new Error(`No delivery adapter configured — cannot deliver message ${msg.id}`);
   }
 
   const content = JSON.parse(msg.content);
@@ -355,8 +354,7 @@ async function deliverMessage(
 
   // Channel delivery
   if (!msg.channel_type || !msg.platform_id) {
-    log.warn('Message missing routing fields', { id: msg.id });
-    return;
+    throw new Error(`Message ${msg.id} missing routing fields (channel_type/platform_id)`);
   }
 
   // Prepend any pending fallback notice to the first real chat response so
@@ -461,6 +459,7 @@ async function handleSystemAction(
   }
 
   log.warn('Unknown system action', { action });
+  throw new Error(`Unknown system action: ${action}`);
 }
 
 export function stopDeliveryPolls(): void {
