@@ -2,6 +2,7 @@
  * Pure, snapshot-testable Italian text for every fallback-visible chat
  * notice. No side effects, no DB/IO — callers decide where the text goes.
  */
+import { TIMEZONE } from '../../config.js';
 import type { FallbackClassification, FallbackState } from './db.js';
 
 function reasonLabel(classification: FallbackClassification | null): string {
@@ -25,7 +26,13 @@ function formatResetAt(resetAt: string | null): string | null {
   if (!resetAt) return null;
   const d = new Date(resetAt);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('it-IT', {
+    timeZone: TIMEZONE,
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 /** Rule: automatic switch to the backup provider. */
@@ -108,7 +115,7 @@ export function statusNotice(state: FallbackState): string {
     `Modello attivo: ${state.backupProvider}${modelPart} (fallback ${modeLabel}).`,
     `Motivo: ${reasonLabel(state.classification)}.`,
   ];
-  if (state.enteredAt) lines.push(`Da: ${state.enteredAt}.`);
+  if (state.enteredAt) lines.push(`Da: ${formatResetAt(state.enteredAt) ?? state.enteredAt}.`);
   if (state.mode === 'auto') {
     const nextAttempt = formatResetAt(state.nextRetryAt ?? state.resetAt);
     lines.push(

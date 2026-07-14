@@ -284,6 +284,40 @@ describe('enterFallback — backup usable', () => {
     expect(getFallbackState().active).toBe(true);
     expect(getFallbackState().mode).toBe('forced');
   });
+
+  it('seeds a nextRetryAt for auto mode with no known resetAt, so the return-probe sweep has a due time to check against', async () => {
+    mockGetAllAgentGroups.mockReturnValue([]);
+
+    await enterFallback({
+      mode: 'auto',
+      classification: 'billing',
+      reason: 'Credit balance is too low',
+      resetAt: null,
+      originSessionId: null,
+      originGroupId: null,
+      messageIds: [],
+    });
+
+    const state = getFallbackState();
+    expect(state.nextRetryAt).not.toBeNull();
+    expect(Date.parse(state.nextRetryAt!)).toBeGreaterThan(Date.now());
+  });
+
+  it('leaves nextRetryAt null for forced mode, which never auto-probes back', async () => {
+    mockGetAllAgentGroups.mockReturnValue([]);
+
+    await enterFallback({
+      mode: 'forced',
+      classification: 'manual',
+      reason: 'manual /fallback force',
+      resetAt: null,
+      originSessionId: null,
+      originGroupId: null,
+      messageIds: [],
+    });
+
+    expect(getFallbackState().nextRetryAt).toBeNull();
+  });
 });
 
 describe('exitFallback', () => {

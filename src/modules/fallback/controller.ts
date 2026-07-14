@@ -219,6 +219,11 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
   const backupProvider = fallbackProviderEnv();
   const model =
     backupProvider === 'opencode' ? opencodeModelEnv() : backupProvider === 'ollama' ? ollamaModelEnv() : null;
+  // Forced fallback never auto-probes back (spec rule 13, decide.ts) so it
+  // has no retry schedule. Auto fallback needs one seeded immediately —
+  // otherwise decideFallbackSweep's dueAt is NaN forever and the install
+  // never attempts a return-to-native probe on its own.
+  const initialNextRetry = opts.mode === 'forced' ? null : (opts.resetAt ?? nextRetryIso(0));
 
   enterFallbackState({
     mode: opts.mode,
@@ -227,7 +232,7 @@ export async function enterFallback(opts: EnterFallbackOpts): Promise<void> {
     backupProvider,
     backupModel: model,
     resetAt: opts.resetAt,
-    nextRetryAt: null,
+    nextRetryAt: initialNextRetry,
     originSessionId: opts.originSessionId,
     originGroupId: opts.originGroupId,
   });
