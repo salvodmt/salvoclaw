@@ -11,7 +11,7 @@ import { getAllAgentGroups } from '../../db/agent-groups.js';
 import { getMessagingGroup } from '../../db/messaging-groups.js';
 import { deleteOrphanProcessingClaims, markMessageFailed } from '../../db/session-db.js';
 import { getSession } from '../../db/sessions.js';
-import { getDeliveryAdapter } from '../../delivery.js';
+import { deliverSessionMessages, getDeliveryAdapter } from '../../delivery.js';
 import { readEnvFile } from '../../env.js';
 import { log } from '../../log.js';
 import { openInboundDb, openOutboundDbRw, writeOutboundDirect, writeSessionMessage } from '../../session-manager.js';
@@ -134,6 +134,17 @@ async function notifyConversationOrOwner(session: Session, text: string): Promis
   } catch (err) {
     log.warn('Falling back to approver DM for fallback notice', { sessionId: session.id, err });
     await notifyApprover(session, text);
+    return;
+  }
+  // Push immediately instead of waiting on a poll — this notice is
+  // host-composed and doesn't need the container, but the 1s "active"
+  // delivery poll only covers sessions whose container is currently
+  // running/idle. If it isn't, only the 60s sweep poll would eventually
+  // pick this up, turning an instant notice into a up-to-a-minute wait.
+  try {
+    await deliverSessionMessages(session);
+  } catch (err) {
+    log.warn('Failed to push immediate delivery for fallback notice', { sessionId: session.id, err });
   }
 }
 

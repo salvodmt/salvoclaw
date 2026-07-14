@@ -6,6 +6,7 @@
  * inbound row for this message.
  */
 import { getDb, hasTable } from '../../db/connection.js';
+import { deliverSessionMessages } from '../../delivery.js';
 import { log } from '../../log.js';
 import { writeOutboundDirect } from '../../session-manager.js';
 import type { Session } from '../../types.js';
@@ -49,7 +50,7 @@ function isOwnerOrAdmin(userId: string | null, agentGroupId: string): boolean {
   return row != null;
 }
 
-function reply(session: Session, deliveryAddr: DeliveryAddress, text: string): void {
+async function reply(session: Session, deliveryAddr: DeliveryAddress, text: string): Promise<void> {
   writeOutboundDirect(session.agent_group_id, session.id, {
     id: `fallback-cmd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     kind: 'chat',
@@ -58,6 +59,15 @@ function reply(session: Session, deliveryAddr: DeliveryAddress, text: string): v
     threadId: deliveryAddr.threadId,
     content: JSON.stringify({ text }),
   });
+  // Push immediately — this is a host-composed reply that doesn't need the
+  // container, but the 1s "active" delivery poll only covers sessions whose
+  // container is currently running/idle. Without this, a command sent while
+  // the container is stopped would sit until the 60s sweep poll instead.
+  try {
+    await deliverSessionMessages(session);
+  } catch (err) {
+    log.warn('Failed to push immediate delivery for fallback command reply', { sessionId: session.id, err });
+  }
 }
 
 export async function interceptFallbackCommand(
@@ -78,7 +88,7 @@ export async function interceptFallbackCommand(
   if (sub === null) return false;
 
   if (!isOwnerOrAdmin(userId, session.agent_group_id)) {
-    reply(session, deliveryAddr, commandDeniedNotice());
+    await reply(session, deliveryAddr, commandDeniedNotice());
     log.info('Fallback command denied', { userId, agentGroupId: session.agent_group_id, sub });
     return true;
   }
@@ -87,7 +97,7 @@ export async function interceptFallbackCommand(
 
   switch (sub) {
     case 'status':
-      reply(session, deliveryAddr, statusNotice(getFallbackState()));
+      await reply(session, deliveryAddr, statusNotice(getFallbackState()));
       break;
     case 'force':
       await enterFallback({
@@ -106,7 +116,7 @@ export async function interceptFallbackCommand(
       // install was actually running on the backup. If it wasn't, statusNotice
       // already says so — no reason to disrupt every live session.
       if (!getFallbackState().active) {
-        reply(session, deliveryAddr, statusNotice(getFallbackState()));
+        await reply(session, deliveryAddr, statusNotice(getFallbackState()));
         break;
       }
       exitFallback({ via: 'manual' });
