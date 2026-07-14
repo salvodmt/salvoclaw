@@ -99,6 +99,7 @@ export interface EnterFallbackParams {
 
 /** Switches the install to the backup provider. Resets retry bookkeeping. */
 export function enterFallbackState(params: EnterFallbackParams): FallbackState {
+  const now = new Date().toISOString();
   getDb()
     .prepare(
       `UPDATE fallback_state SET
@@ -108,7 +109,7 @@ export function enterFallbackState(params: EnterFallbackParams): FallbackState {
          reason = @reason,
          backup_provider = @backupProvider,
          backup_model = @backupModel,
-          entered_at = datetime('now'),
+          entered_at = @now,
           reset_at = @resetAt,
           next_retry_at = @nextRetryAt,
          retry_count = 0,
@@ -119,10 +120,10 @@ export function enterFallbackState(params: EnterFallbackParams): FallbackState {
          origin_session_id = @originSessionId,
          origin_group_id = @originGroupId,
          last_error = NULL,
-         updated_at = datetime('now')
+         updated_at = @now
        WHERE id = 1`,
     )
-    .run(params);
+    .run({ ...params, now });
   return getFallbackState();
 }
 
@@ -148,10 +149,10 @@ export function clearFallbackState(): FallbackState {
          origin_session_id = NULL,
          origin_group_id = NULL,
          last_error = NULL,
-         updated_at = datetime('now')
+         updated_at = @now
        WHERE id = 1`,
     )
-    .run();
+    .run({ now: new Date().toISOString() });
   return getFallbackState();
 }
 
@@ -171,10 +172,10 @@ export function setProbe(params: SetProbeParams): FallbackState {
          probe_message_id = @probeMessageId,
          probe_session_id = @probeSessionId,
          probe_started_at = @probeStartedAt,
-         updated_at = datetime('now')
+         updated_at = @now
        WHERE id = 1`,
     )
-    .run({ ...params, probing: params.probing ? 1 : 0 });
+    .run({ ...params, probing: params.probing ? 1 : 0, now: new Date().toISOString() });
   return getFallbackState();
 }
 
@@ -189,23 +190,23 @@ export function bumpRetry(nextRetryAt: string): FallbackState {
          probe_message_id = NULL,
          probe_session_id = NULL,
          probe_started_at = NULL,
-         updated_at = datetime('now')
+         updated_at = @now
        WHERE id = 1`,
     )
-    .run({ nextRetryAt });
+    .run({ nextRetryAt, now: new Date().toISOString() });
   return getFallbackState();
 }
 
 /** Records the last error seen (diagnostics only — doesn't change active/mode). */
 export function setLastError(message: string): void {
   getDb()
-    .prepare(`UPDATE fallback_state SET last_error = @message, updated_at = datetime('now') WHERE id = 1`)
-    .run({ message });
+    .prepare(`UPDATE fallback_state SET last_error = @message, updated_at = @now WHERE id = 1`)
+    .run({ message, now: new Date().toISOString() });
 }
 
 /** Records a diagnostic event in the fallback_events table (spec rule: every switch/probe/failure gets logged). */
 export function logFallbackEvent(eventType: string, reason?: string | null, details?: string | null): void {
   getDb()
-    .prepare(`INSERT INTO fallback_events (event_type, reason, details) VALUES (?, ?, ?)`)
-    .run(eventType, reason ?? null, details ?? null);
+    .prepare(`INSERT INTO fallback_events (timestamp, event_type, reason, details) VALUES (?, ?, ?, ?)`)
+    .run(new Date().toISOString(), eventType, reason ?? null, details ?? null);
 }
