@@ -218,8 +218,9 @@ describe('enterFallback — backup usable', () => {
     const origin = makeSession();
     mockGetSession.mockReturnValue(origin);
     mockGetMessagingGroup.mockReturnValue({ id: 'mg-1', channel_type: 'telegram', platform_id: 'chat-1' });
+    const insertNoticeRun = vi.fn();
     mockOpenInboundDb.mockReturnValue({
-      prepare: () => ({ run: vi.fn() }),
+      prepare: () => ({ run: insertNoticeRun }),
       transaction: (fn: (ids: string[]) => void) => (ids: string[]) => fn(ids),
       close: vi.fn(),
     });
@@ -238,7 +239,9 @@ describe('enterFallback — backup usable', () => {
     expect(state.active).toBe(true);
     expect(state.backupProvider).toBe('mock');
     expect(mockWriteDegradationFragmentForAllGroups).toHaveBeenCalledTimes(1);
-    expect(mockWriteOutboundDirect).toHaveBeenCalledTimes(1); // switch notice to origin conversation
+    // switch notice is deferred into fallback_pending_notices, delivered with the next chat response
+    expect(insertNoticeRun).toHaveBeenCalledWith(origin.id, expect.any(String));
+    expect(mockWriteOutboundDirect).not.toHaveBeenCalled();
     expect(mockWriteSessionMessage).toHaveBeenCalledTimes(1); // origin session restart briefing
     expect(mockKillContainer).toHaveBeenCalledWith(origin.id, 'fallback-switch', expect.any(Function));
   });

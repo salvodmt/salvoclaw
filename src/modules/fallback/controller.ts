@@ -137,7 +137,18 @@ async function notifyConversationOrOwner(session: Session, text: string): Promis
   }
 }
 
-function restartOriginSession(session: Session, _briefing: string): void {
+function restartOriginSession(session: Session, briefing: string): void {
+  writeSessionMessage(session.agent_group_id, session.id, {
+    id: generateId('fallback-switch'),
+    kind: 'chat',
+    timestamp: new Date().toISOString(),
+    platformId: session.agent_group_id,
+    channelType: 'agent',
+    threadId: null,
+    content: JSON.stringify({ text: briefing, sender: 'system', senderId: 'system' }),
+    onWake: 1,
+  });
+
   killContainer(session.id, 'fallback-switch', () => {
     try {
       const outDb = openOutboundDbRw(session.agent_group_id, session.id);
