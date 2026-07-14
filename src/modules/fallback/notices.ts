@@ -73,8 +73,8 @@ export function forwardBriefing(summary: string | null, backupProvider: string, 
   const modelPart = model ? model : backupProvider;
   const base = [
     `Claude ha esaurito i limiti — stai rispondendo tu con ${backupProvider}.`,
-    `Quando ti chiedono che modello sei, rispondi solo: "Modello attuale: ${modelPart} via ${backupProvider}."`,
-    `Non aggiungere presentazioni, non dire chi sei, non aggiungere altro. Solo il modello.`,
+    `Rispondi normalmente a qualunque domanda, incluse quelle generiche su chi sei.`,
+    `Solo quando ti chiedono esplicitamente che modello sei, dichiaralo con: "Modello attuale: ${modelPart} via ${backupProvider}." — non fingere di essere Claude.`,
     `Se ti viene chiesto di fare qualcosa che non puoi fare (tool mancante, capacità assente), dichiaralo apertamente invece di provarci o fingere.`,
   ].join(' ');
   return summary ? `${base}\n\nRiassunto della conversazione recente:\n${summary}` : base;
