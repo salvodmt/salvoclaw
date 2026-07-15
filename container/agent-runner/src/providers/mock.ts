@@ -1,4 +1,5 @@
 import { registerProvider } from './provider-registry.js';
+import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import type { AgentProvider, AgentQuery, ProviderEvent, ProviderOptions, QueryInput } from './types.js';
 
 export type MockFailMode = 'quota' | 'billing' | 'overload';
@@ -60,6 +61,8 @@ export class MockProvider implements AgentProvider {
     this.responseFactory = responseFactory ?? ((prompt) => `Mock response to: ${prompt.slice(0, 100)}`);
     this.failMode = failMode !== undefined ? failMode : parseFailMode();
   }
+
+  registerMemorySessionHook(_hook: MemorySessionHookRegistration): void {}
 
   isSessionInvalid(_err: unknown): boolean {
     return false;
