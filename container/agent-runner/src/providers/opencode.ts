@@ -4,6 +4,7 @@ import { createOpencodeClient, type OpencodeClient } from '@opencode-ai/sdk';
 
 import { registerProvider } from './provider-registry.js';
 import type { AgentProvider, AgentQuery, ProviderEvent, ProviderOptions, QueryInput } from './types.js';
+import type { MemorySessionHookRegistration } from '../memory/session-hook.js';
 import { mcpServersToOpenCodeConfig } from './mcp-to-opencode.js';
 
 function log(msg: string): void {
@@ -228,6 +229,14 @@ export class OpenCodeProvider implements AgentProvider {
   constructor(options: ProviderOptions = {}) {
     this.options = options;
   }
+
+  // OpenCode has no equivalent to the Claude Code SDK's settings.json
+  // SessionStart hook — it doesn't have a hook mechanism for injecting
+  // memory context at session-start. No-op, same as MockProvider. Memory
+  // for opencode-backed groups still works via the agent reading
+  // memory/index.md itself per container/CLAUDE.md; it just doesn't get the
+  // automatic injection Claude sessions get.
+  registerMemorySessionHook(_hook: MemorySessionHookRegistration): void {}
 
   isSessionInvalid(err: unknown): boolean {
     const msg = err instanceof Error ? err.message : String(err);
