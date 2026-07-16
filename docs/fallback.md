@@ -45,14 +45,25 @@ The mechanism is host-orchestrated with container-side detection:
 Set in `.env`:
 
 ```bash
-FALLBACK_PROVIDER=ollama        # or: opencode
+# Local backup (ships with this module):
+FALLBACK_PROVIDER=ollama
 OLLAMA_MODEL=qwen3:14b          # required for ollama
 OLLAMA_BASE_URL=http://host.docker.internal:11434   # optional, this is the default
-# OPENCODE_MODEL=...            # required when FALLBACK_PROVIDER=opencode
+
+# Or a cloud backup through OpenCode (requires /add-opencode):
+# FALLBACK_PROVIDER=opencode
+# OPENCODE_MODEL=openrouter/deepseek/deepseek-v4-pro   # any model OpenCode can route
 ```
 
 With no `FALLBACK_PROVIDER` configured, limit events produce an owner notice
 explaining that no backup is available; nothing else changes.
+
+The `opencode` backup works with any provider OpenCode itself supports —
+OpenRouter, OpenAI, Google, DeepSeek, a direct provider API key, etc. — the
+`OPENCODE_MODEL` value is just OpenCode's `provider/model` reference, and
+credentials follow the normal OpenCode configuration (OneCLI vault / env).
+No OpenRouter account is required if you point OpenCode at a provider
+directly.
 
 The `ollama` provider ships with this module (`src/providers/ollama.ts`,
 `container/agent-runner/src/providers/ollama.ts`): Ollama speaks the Anthropic
